@@ -1,88 +1,99 @@
 <template>
-  <q-layout view="hHh lpR fFf">
-    <q-header class="bg-primary text-white" height-hint="98">
-      <q-toolbar>
-        <q-toolbar-title>
-          <q-avatar>
-            <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" />
-          </q-avatar>
-          RoK Tracker Suite
-        </q-toolbar-title>
-        <!-- <q-toggle v-model="blueModel" color="grey" unchecked-icon="clear" checked-icon="check" /> -->
-        <q-btn
-          round
-          dense
-          flat
-          class="theme-toggle"
-          :class="{ 'theme-toggle--toggled': darkMode }"
-          size="lg"
-          color="white"
-          @click="toggleDarkMode"
+  <div class="flex h-screen flex-col">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-primary px-6 text-primary-foreground">
+      <div class="flex items-center gap-2">
+        <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" class="h-8 w-8" alt="Logo" />
+        <span class="text-lg font-semibold">RoK Tracker Suite</span>
+      </div>
+      <div class="flex-1" />
+      <button
+        class="theme-toggle rounded-full p-2 hover:bg-white/10 transition-colors"
+        :class="{ 'theme-toggle--toggled': darkMode }"
+        @click="() => toggleDarkMode()"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          width="1.5em"
+          height="1.5em"
+          fill="currentColor"
+          stroke-linecap="round"
+          class="theme-toggle__classic"
+          viewBox="0 0 32 32"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-            width="1em"
-            height="1em"
-            fill="currentColor"
-            stroke-linecap="round"
-            class="theme-toggle__classic"
-            viewBox="0 0 32 32"
-            style="width: 70%; height: 100%"
-          >
-            <clipPath id="theme-toggle__classic__cutout">
-              <path d="M0-5h30a1 1 0 0 0 9 13v24H0Z" />
-            </clipPath>
-            <g clip-path="url(#theme-toggle__classic__cutout)">
-              <circle cx="16" cy="16" r="9.34" />
-              <g stroke="currentColor" stroke-width="1.5">
-                <path d="M16 5.5v-4" />
-                <path d="M16 30.5v-4" />
-                <path d="M1.5 16h4" />
-                <path d="M26.5 16h4" />
-                <path d="m23.4 8.6 2.8-2.8" />
-                <path d="m5.7 26.3 2.9-2.9" />
-                <path d="m5.8 5.8 2.8 2.8" />
-                <path d="m23.4 23.4 2.9 2.9" />
-              </g>
+          <clipPath id="theme-toggle__classic__cutout">
+            <path d="M0-5h30a1 1 0 0 0 9 13v24H0Z" />
+          </clipPath>
+          <g clip-path="url(#theme-toggle__classic__cutout)">
+            <circle cx="16" cy="16" r="9.34" />
+            <g stroke="currentColor" stroke-width="1.5">
+              <path d="M16 5.5v-4" />
+              <path d="M16 30.5v-4" />
+              <path d="M1.5 16h4" />
+              <path d="M26.5 16h4" />
+              <path d="m23.4 8.6 2.8-2.8" />
+              <path d="m5.7 26.3 2.9-2.9" />
+              <path d="m5.8 5.8 2.8 2.8" />
+              <path d="m23.4 23.4 2.9 2.9" />
             </g>
-          </svg>
-        </q-btn>
-      </q-toolbar>
-    </q-header>
-    <q-page-container>
-      <q-splitter v-model="splitterModel" unit="px" disable>
-        <template v-slot:before>
-          <div class="flex-center full-height">
-            <q-tabs vertical align="center">
-              <q-route-tab name="scanner" to="/scanner" label="Scanners" />
-              <q-route-tab name="calculator" to="/calculator" label="Calculators" />
-              <q-route-tab name="settings" to="/settings" label="Settings" />
-            </q-tabs>
-          </div>
-        </template>
-        <template v-slot:after>
-          <router-view v-slot="{ Component, route }">
-            <!--  default mode would be better, but strange css bug  -->
-            <transition
-              :enter-active-class="route.meta.transitionIn as string"
-              :leave-active-class="route.meta.transitionOut as string"
-              mode="out-in"
-            >
-              <keep-alive>
-                <component :is="Component" />
-              </keep-alive>
-            </transition>
-          </router-view>
-        </template>
-      </q-splitter>
-    </q-page-container>
-  </q-layout>
+          </g>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Main content with sidebar -->
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Sidebar Navigation -->
+      <nav class="flex w-[120px] flex-col items-center gap-1 border-r bg-muted/40 p-2">
+        <router-link
+          v-for="item in navItems"
+          :key="item.to"
+          :to="item.to"
+          class="flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          active-class="bg-accent text-accent-foreground"
+        >
+          {{ item.label }}
+        </router-link>
+      </nav>
+
+      <!-- Content area -->
+      <main class="flex-1 overflow-auto p-4">
+        <router-view v-slot="{ Component, route }">
+          <transition
+            :enter-active-class="`${(route.meta.transitionIn as string) ?? 'slide-up'}-enter-active`"
+            :leave-active-class="`${(route.meta.transitionOut as string) ?? 'slide-up'}-leave-active`"
+            :enter-from-class="`${(route.meta.transitionIn as string) ?? 'slide-up'}-enter-from`"
+            :leave-to-class="`${(route.meta.transitionOut as string) ?? 'slide-up'}-leave-to`"
+            mode="out-in"
+          >
+            <keep-alive>
+              <component :is="Component" />
+            </keep-alive>
+          </transition>
+        </router-view>
+      </main>
+    </div>
+
+    <!-- Confirm Dialog (replaces $q.dialog) -->
+    <AlertDialog :open="confirmDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm</AlertDialogTitle>
+          <AlertDialogDescription>{{ confirmDialogMessage }}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="handleConfirmDialogResponse(false)">No</AlertDialogCancel>
+          <AlertDialogAction @click="handleConfirmDialogResponse(true)">Yes</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useQuasar } from 'quasar'
+import { useDark, useToggle } from '@vueuse/core'
 import { useConfigStore } from './stores/config-store'
 import { FullConfigSchema } from './schema/FullConfig'
 import { BatchGovernorDataListSchema, KingdomPresetListSchema } from './schema/SchemaUtils'
@@ -91,22 +102,50 @@ import { useAllianceStore } from './stores/alliance-store'
 import { BatchAdditionalDataSchema } from './schema/BatchAdditionalData'
 import { useHonorStore } from './stores/honor-store'
 import { useSeedStore } from './stores/seed-store'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const configStore = useConfigStore()
 const allianceStore = useAllianceStore()
 const honorStore = useHonorStore()
 const seedStore = useSeedStore()
 
-const $q = useQuasar()
-// import themeToggleIcon from 'assets/theme-toggle.svg'
-const splitterModel = ref(120)
-const darkMode = ref($q.dark.isActive)
+const darkMode = useDark()
+const toggleDarkMode = useToggle(darkMode)
 
-const toggleDarkMode = () => {
-  darkMode.value = !darkMode.value
-  $q.dark.set(darkMode.value)
+const navItems = [
+  { to: '/scanner', label: 'Scanners' },
+  { to: '/calculator', label: 'Calculators' },
+  { to: '/settings', label: 'Settings' },
+]
+
+// Confirm dialog state (replaces $q.dialog)
+const confirmDialogOpen = ref(false)
+const confirmDialogMessage = ref('')
+let confirmDialogResolve: ((value: boolean) => void) | null = null
+
+const showConfirmDialog = (message: string): void => {
+  confirmDialogMessage.value = message
+  confirmDialogOpen.value = true
 }
 
+const handleConfirmDialogResponse = (confirmed: boolean) => {
+  confirmDialogOpen.value = false
+  if (confirmDialogResolve) {
+    confirmDialogResolve(confirmed)
+    confirmDialogResolve = null
+  }
+}
+
+// ---- pywebview init ----
 window.addEventListener('pywebviewready', async () => {
   try {
     const loadedConfig = await window.pywebview.api.LoadFullConfig()
@@ -131,6 +170,7 @@ window.addEventListener('pywebviewready', async () => {
   }
 })
 
+// ---- Batch IPC handlers (unchanged logic) ----
 const setScanId = (id: string, batchType: string) => {
   const parsedBatchType = BatchTypeSchema.safeParse(JSON.parse(batchType))
 
@@ -197,19 +237,10 @@ const askConfirm = (message: string, batchType: string) => {
   const parsedBatchType = BatchTypeSchema.safeParse(JSON.parse(batchType))
 
   if (parsedBatchType.success) {
-    $q.dialog({
-      title: 'Confirm',
-      message,
-      ok: 'Yes',
-      cancel: 'No',
-      persistent: true,
-    })
-      .onOk(() => {
-        window.pywebview.api.ConfirmCallbackBatch(true, JSON.stringify(parsedBatchType.data))
-      })
-      .onCancel(() => {
-        window.pywebview.api.ConfirmCallbackBatch(false, JSON.stringify(parsedBatchType.data))
-      })
+    showConfirmDialog(message)
+    confirmDialogResolve = (confirmed: boolean) => {
+      window.pywebview.api.ConfirmCallbackBatch(confirmed, JSON.stringify(parsedBatchType.data))
+    }
   }
 }
 
@@ -244,5 +275,3 @@ window.batch = {
   scanFinished: scanFinished,
 }
 </script>
-
-<style lang="css" scoped></style>

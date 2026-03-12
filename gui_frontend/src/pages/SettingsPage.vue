@@ -1,11 +1,5 @@
 <template>
-  <q-page class="column justify-center">
-    <div class="col-auto column flex-center"><PlaceholderComponent /></div>
-  </q-page>
+  <div class="flex items-center justify-center h-full">
+    <p class="text-muted-foreground">Settings page — coming soon</p>
+  </div>
 </template>
-
-<script setup lang="ts">
-import PlaceholderComponent from 'src/components/PlaceholderComponent.vue'
-
-//
-</script>

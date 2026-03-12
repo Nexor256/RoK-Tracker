@@ -1,10 +1,10 @@
-import type { ValidationRule } from 'quasar'
+type ValidationRule = ((val: string | undefined) => true | string)
 
 export const notEmptyRule = [(val: string | undefined) => !!val || 'Required'] as ValidationRule[]
 
 export const notEmptyArrayRule = [
   (val: unknown[] | undefined) => (val !== undefined && val.length > 0) || 'Required',
-] as ValidationRule[]
+]
 
 export const intRule = [
   ...notEmptyRule,

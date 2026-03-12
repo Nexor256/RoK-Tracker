@@ -1,40 +1,56 @@
 <template>
-  <q-page class="column">
-    <q-tabs v-model="tab" align="justify" class="col-auto">
-      <q-tab name="kingdom" label="Kingdom" />
-      <q-tab name="seed" label="Seed" />
-      <q-tab name="honor" label="Honor" />
-      <q-tab name="alliance" label="Alliance" />
-    </q-tabs>
+  <div class="flex h-full flex-col">
+    <Tabs v-model="tab" class="flex h-full flex-col">
+      <TabsList class="w-full justify-start rounded-none border-b bg-transparent p-0">
+        <TabsTrigger
+          value="kingdom"
+          class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+        >
+          Kingdom
+        </TabsTrigger>
+        <TabsTrigger
+          value="seed"
+          class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+        >
+          Seed
+        </TabsTrigger>
+        <TabsTrigger
+          value="honor"
+          class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+        >
+          Honor
+        </TabsTrigger>
+        <TabsTrigger
+          value="alliance"
+          class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+        >
+          Alliance
+        </TabsTrigger>
+      </TabsList>
 
-    <q-separator />
-
-    <q-tab-panels v-model="tab" animated keep-alive class="col">
-      <q-tab-panel name="kingdom">
+      <TabsContent value="kingdom" class="flex-1 overflow-auto p-4">
         <KingdomScanner />
-      </q-tab-panel>
-
-      <q-tab-panel name="seed">
+      </TabsContent>
+      <TabsContent value="seed" class="flex-1 overflow-auto p-4">
         <SeedScanner />
-      </q-tab-panel>
-
-      <q-tab-panel name="honor">
+      </TabsContent>
+      <TabsContent value="honor" class="flex-1 overflow-auto p-4">
         <HonorScanner />
-      </q-tab-panel>
-
-      <q-tab-panel name="alliance">
+      </TabsContent>
+      <TabsContent value="alliance" class="flex-1 overflow-auto p-4">
         <AllianceScanner />
-      </q-tab-panel>
-    </q-tab-panels>
-  </q-page>
+      </TabsContent>
+    </Tabs>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import KingdomScanner from 'src/components/KingdomScanner.vue'
-import AllianceScanner from 'src/components/AllianceScanner.vue'
-import HonorScanner from 'src/components/HonorScanner.vue'
-import SeedScanner from 'src/components/SeedScanner.vue'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import KingdomScanner from '@/components/KingdomScanner.vue'
+import AllianceScanner from '@/components/AllianceScanner.vue'
+import HonorScanner from '@/components/HonorScanner.vue'
+import SeedScanner from '@/components/SeedScanner.vue'
 
 const tab = ref('kingdom')
 </script>

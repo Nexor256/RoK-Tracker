@@ -1,143 +1,88 @@
 <template>
-  <q-card bordered flat>
-    <q-card-section>
-      <div class="text-h6">{{ kingdomStore.lastGovernor.name }}</div>
-      <div class="text-subtitle2">with id {{ kingdomStore.lastGovernor.id }}</div>
-    </q-card-section>
+  <Card class="flex h-full flex-col">
+    <CardHeader class="pb-2">
+      <CardTitle>{{ kingdomStore.lastGovernor.name }}</CardTitle>
+      <CardDescription>with id {{ kingdomStore.lastGovernor.id }}</CardDescription>
+    </CardHeader>
 
-    <q-separator />
+    <Separator />
 
-    <q-card-section>
-      <q-list dense>
-        <q-item>
-          <q-item-section>Power</q-item-section>
-          <q-item-section side>{{ formatNumber(kingdomStore.lastGovernor.power) }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>Killpoints</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.killpoints)
-          }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>Alliance</q-item-section>
-          <q-item-section side>{{ kingdomStore.lastGovernor.alliance }}</q-item-section>
-        </q-item>
-        <q-separator />
-        <q-item>
-          <q-item-section>T1 Kills</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.t1_kills)
-          }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>T2 Kills</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.t2_kills)
-          }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>T3 Kills</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.t3_kills)
-          }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>T4 Kills</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.t4_kills)
-          }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>T5 Kills</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.t5_kills)
-          }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>Ranged Points</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.ranged_points)
-          }}</q-item-section>
-        </q-item>
-        <q-separator />
-        <q-item>
-          <q-item-section>Deaths</q-item-section>
-          <q-item-section side>{{ formatNumber(kingdomStore.lastGovernor.dead) }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>Assisted</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.rss_assistance)
-          }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>Gathered</q-item-section>
-          <q-item-section side>{{
-            formatNumber(kingdomStore.lastGovernor.rss_gathered)
-          }}</q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>Helps</q-item-section>
-          <q-item-section side>{{ formatNumber(kingdomStore.lastGovernor.helps) }}</q-item-section>
-        </q-item>
-      </q-list>
-    </q-card-section>
-    <q-separator />
-    <q-card-section>
-      <div class="column">
-        <div class="row justify-between">
-          <div class="column">
-            <div class="text-left">Last Update</div>
-            <div class="text-left">
-              <q-tooltip anchor="bottom left" self="top left" :offset="[10, 10]">
-                {{ lastUpdateFormatted }} </q-tooltip
-              ><UseTimeAgo v-slot="{ timeAgo }" :time="lastUpdate">
-                {{ timeAgo }}
-              </UseTimeAgo>
-            </div>
+    <CardContent class="flex-1 overflow-auto py-3">
+      <div class="space-y-1 text-sm">
+        <div class="flex justify-between"><span>Power</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.power) }}</span></div>
+        <div class="flex justify-between"><span>Killpoints</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.killpoints) }}</span></div>
+        <div class="flex justify-between"><span>Alliance</span><span class="text-muted-foreground">{{ kingdomStore.lastGovernor.alliance }}</span></div>
+
+        <Separator class="my-2" />
+
+        <div class="flex justify-between"><span>T1 Kills</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.t1_kills) }}</span></div>
+        <div class="flex justify-between"><span>T2 Kills</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.t2_kills) }}</span></div>
+        <div class="flex justify-between"><span>T3 Kills</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.t3_kills) }}</span></div>
+        <div class="flex justify-between"><span>T4 Kills</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.t4_kills) }}</span></div>
+        <div class="flex justify-between"><span>T5 Kills</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.t5_kills) }}</span></div>
+        <div class="flex justify-between"><span>Ranged Points</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.ranged_points) }}</span></div>
+
+        <Separator class="my-2" />
+
+        <div class="flex justify-between"><span>Deaths</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.dead) }}</span></div>
+        <div class="flex justify-between"><span>Assisted</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.rss_assistance) }}</span></div>
+        <div class="flex justify-between"><span>Gathered</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.rss_gathered) }}</span></div>
+        <div class="flex justify-between"><span>Helps</span><span class="text-muted-foreground">{{ formatNumber(kingdomStore.lastGovernor.helps) }}</span></div>
+      </div>
+    </CardContent>
+
+    <Separator />
+
+    <CardFooter class="flex-col gap-2 py-3">
+      <div class="flex w-full justify-between text-sm">
+        <TooltipProvider>
+          <div class="text-left">
+            <div>Last Update</div>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <span class="text-muted-foreground cursor-help">
+                  <UseTimeAgo v-slot="{ timeAgo }" :time="lastUpdate">{{ timeAgo }}</UseTimeAgo>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{{ lastUpdateFormatted }}</TooltipContent>
+            </Tooltip>
           </div>
-          <div class="column">
-            <div class="text-center">
-              {{ kingdomStore.status.current_governor }} of
-              {{ kingdomStore.status.target_governor }}
-            </div>
-            <div class="text-center">
-              {{ kingdomStore.status.skipped_governors }}
-              {{ kingdomStore.status.skipped_governors === 1 ? 'skip' : 'skips' }}
-            </div>
-          </div>
-          <div class="column">
-            <div class="text-right">Expected Finish</div>
-            <div class="text-right">
-              <q-tooltip anchor="bottom right" self="top right" :offset="[10, 10]">
-                {{ expectedFinishFormatted }} </q-tooltip
-              ><UseTimeAgo
-                v-slot="{ timeAgo }"
-                :time="expectedFinish"
-                :show-second="true"
-                :update-interval="1000"
-              >
-                {{ timeAgo }}
-              </UseTimeAgo>
-            </div>
+        </TooltipProvider>
+        <div class="text-center">
+          <div>{{ kingdomStore.status.current_governor }} of {{ kingdomStore.status.target_governor }}</div>
+          <div class="text-muted-foreground">
+            {{ kingdomStore.status.skipped_governors }}
+            {{ kingdomStore.status.skipped_governors === 1 ? 'skip' : 'skips' }}
           </div>
         </div>
-        <q-linear-progress
-          :value="kingdomStore.status.current_governor / kingdomStore.status.target_governor"
-          rounded
-          class="q-mt-sm"
-        />
+        <TooltipProvider>
+          <div class="text-right">
+            <div>Expected Finish</div>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <span class="text-muted-foreground cursor-help">
+                  <UseTimeAgo v-slot="{ timeAgo }" :time="expectedFinish" :show-second="true" :update-interval="1000">{{ timeAgo }}</UseTimeAgo>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{{ expectedFinishFormatted }}</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </div>
-    </q-card-section>
-  </q-card>
+      <Progress :model-value="(kingdomStore.status.current_governor / kingdomStore.status.target_governor) * 100" class="w-full" />
+    </CardFooter>
+  </Card>
 </template>
-<script setup lang="ts">
-import { useKingdomStore } from 'src/stores/kingdom-store'
 
+<script setup lang="ts">
+import { computed } from 'vue'
 import { UseTimeAgo } from '@vueuse/components'
 import { useDateFormat } from '@vueuse/core'
-import { computed } from 'vue'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { Progress } from '@/components/ui/progress'
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
+import { useKingdomStore } from '@/stores/kingdom-store'
 
 const kingdomStore = useKingdomStore()
 
@@ -153,13 +98,3 @@ const formatNumber = (value: number | string) => {
   return isNaN(Number(value)) ? (value as string) : Intl.NumberFormat().format(value as number)
 }
 </script>
-
-<style scoped>
-.q-item {
-  min-height: 24px;
-}
-
-.q-list .q-separator {
-  margin: 3px 0;
-}
-</style>
