@@ -2,7 +2,9 @@
   <div class="flex gap-4">
     <div class="flex w-2/3 flex-col gap-3">
       <div class="flex gap-3">
-        <Input class="flex-1" v-model="configStore.config.scan.kingdom_name" label="Scan name" hint="This will get prepended to the file name" :disabled="scanRunning" />
+        <div class="flex-[2]">
+          <Input v-model="configStore.config.scan.kingdom_name" label="Scan name" hint="This will get prepended to the file name" :disabled="scanRunning" />
+        </div>
         <div class="flex-1 space-y-1">
           <label class="text-sm font-medium">Output formats</label>
           <div class="flex flex-wrap gap-1 rounded-md border p-2 min-h-[36px]">
@@ -17,8 +19,12 @@
         </div>
       </div>
       <div class="flex gap-3">
-        <Input class="flex-1" v-model="configStore.config.general.bluestacks.name" label="Emulator name" hint="Works only for BlueStacks" :disabled="scanRunning" />
-        <Input class="flex-1" v-model="configStore.config.general.adb_port" label="ADB Port of emulator" hint="Should be autofilled if emulator is found" :disabled="scanRunning" />
+        <div class="flex-1">
+          <Input v-model="configStore.config.general.bluestacks.name" label="Emulator name" hint="Works only for BlueStacks" :disabled="scanRunning" />
+        </div>
+        <div class="flex-1">
+          <Input v-model="configStore.config.general.adb_port" label="ADB Port of emulator" hint="Should be autofilled if emulator is found" :disabled="scanRunning" />
+        </div>
       </div>
       <Input v-model="configStore.config.scan.people_to_scan" label="How many people to scan" hint="The amount of people you want to scan" :disabled="scanRunning" />
       <Input v-model="configStore.config.scan.timings.max_random" label="Maximum random delay (in s)" hint="A random delay is added to the wait times, this is the maximum" :disabled="scanRunning" />

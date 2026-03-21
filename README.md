@@ -1,191 +1,326 @@
-# Rok Tracker
+# RokTracker
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg)](https://www.python.org/)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6.svg)](#requirements)
+
+**Open-source Rise of Kingdoms stats management tool.** Automatically scan and track the top players in your kingdom, alliance, and honor leaderboards using OCR and ADB.
+
+Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919/RokTracker) and [Cyrexxis](https://github.com/Cyrexxis/RokTracker), this version has been heavily extended with a modern GUI, multiple OCR engines, and much more.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [Simple Installation (Executable)](#simple-installation-executable)
+  - [Advanced Installation (Python)](#advanced-installation-python)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Emulator Setup](#emulator-setup)
+  - [Bluestacks 5](#bluestacks-5)
+  - [LD Player (Experimental)](#ld-player-experimental)
+- [Output Formats](#output-formats)
+- [Building from Source](#building-from-source)
+- [Important Notes](#important-notes)
+- [Troubleshooting & Support](#troubleshooting--support)
+- [License](#license)
+
+---
+
+## What's New in v7
+
+- **Unified application** — all 4 scanners (Kingdom, Alliance, Honor, Seed) combined into a single executable
+- **New GUI** — completely rebuilt interface using Quasar (Vue 3) + PyWebView
+- **In-app settings** — configure everything from the Settings page, no more manual `config.json` editing
+- **Historical database** — SQLite-based storage for tracking governor stats over time
+- **Scan presets** — save and load custom scan configurations
+- **Improved OCR** — better fallback handling between Tesseract and EasyOCR
+
+> **Note:** v7 config is not compatible with earlier versions. If upgrading, launch the app and verify your settings on the **Settings** page.
+
+---
+
+## Features
+
+### Kingdom Scanner
+
+- Complete kingdom ranking scan with detailed governor data
+- Captures: Governor ID, Name, Power, Kill Points, Ranged Points, T1–T5 Kills, Total Kills, T4+T5 Kills, Dead Troops, RSS Gathered, RSS Assistance, Helps, and Alliance Name
+- **Kill validation** — detects incorrect kills based on kill-to-killpoint ratios; saves flagged images to `manual_review/` (prefix `F`) with log warnings
+- **Kill reconstruction** — optionally attempts to recover incorrect kill data; saves images to `manual_review/` (prefix `R`) with log info
+- **Inactive detection** — automatically skips inactive accounts (those that can't be clicked in rankings); optionally saves screenshots to `inactives/`
+- **Power validation** — optional plausibility check for governor power on the power ranking page
+- **City Hall check** — optionally filter governors by minimum City Hall level
+- **Resume scan** — continue a scan from where you left off
+- **Configurable scan presets** — choose exactly which data fields to capture
+
+### Alliance Scanner
+
+- Complete alliance ranking scan
+- Saves governor name and score
+- Saves a screenshot of each name (since OCR accuracy is limited by game rendering)
+
+### Honor Scanner
+
+- Complete personal honor ranking scan
+- Same output format and image backup as the alliance scanner
+
+### Seed Scanner
+
+- Lightweight scanner for quickly capturing only kill points or power from kingdom rankings
+- Works like the alliance scanner but targets kingdom-level data
+
+### General
+
+- **Multiple OCR engines** — Tesseract and EasyOCR with configurable fallback order
+- **Multiple output formats** — XLSX, CSV, and JSONL
+- **Unified application** — single executable with all 4 scanners (Kingdom, Alliance, Honor, Seed) in one interface
+- **Modern GUI** — built with Quasar (Vue 3) + PyWebView for a native desktop experience
+- **Historical database** — SQLite-based storage for tracking governor stats over time
+- **Emulator support** — Bluestacks 5 (recommended) and LD Player (experimental)
+- **Configurable timings** — fine-tune delays for different system speeds
+
+---
+
+## Screenshots
+
+|        Kingdom Scanner         |         Alliance Scanner         |       Honor Scanner        |       Seed Scanner       |
+| :----------------------------: | :------------------------------: | :------------------------: | :----------------------: |
+| ![Kingdom](images/kingdom.png) | ![Alliance](images/alliance.png) | ![Honor](images/honor.png) | ![Seed](images/seed.png) |
+
+|            Excel Output            |          CLI Options           |
+| :--------------------------------: | :----------------------------: |
+| ![Excel](images/excel-example.png) | ![CLI](images/cmd-options.png) |
+
+---
+
+## Requirements
+
+| Requirement                         | Details                                                                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **OS**                              | Windows 10 or 11                                                                                                                |
+| **Emulator**                        | [Bluestacks 5](https://www.bluestacks.com/bluestacks-5.html) (recommended) or LD Player                                         |
+| **Tesseract Data**                  | [Trained models](https://github.com/tesseract-ocr/tessdata) — place in `deps/tessdata/`                                         |
+| **ADB Platform Tools**              | [Download](https://dl.google.com/android/repository/platform-tools_r31.0.3-windows.zip) — place in `deps/platform-tools/`       |
+| **Python** (advanced only)          | [Python 3.11+](https://www.python.org/downloads/release/python-3110/)                                                           |
+| **C++ Build Tools** (advanced only) | [Microsoft Build Tools for C++](https://visualstudio.microsoft.com/visual-cpp-build-tools/) — may be required for some packages |
+
+---
+
+## Installation
+
+### Simple Installation (Executable)
+
+No Python required — just download and run.
+
+1. Download the latest release: **[Latest Release](https://github.com/Cyrexxis/RokTracker/releases/latest)** (choose `RoK-Scanner.zip`)
+2. Extract the zip to your desired location
+3. Download and place dependencies in the `deps/` folder:
+   - Tesseract trained data → `deps/tessdata/`
+   - ADB Platform Tools → `deps/platform-tools/`
+4. Configure your emulator ([see Emulator Setup](#emulator-setup))
+5. Double-click `RokScanner.exe` to launch — all 4 scanners are available from the single application
+6. Adjust settings from the **Settings** page inside the app
+
+**Expected folder structure:**
+
+```
+./
+├── _internal/
+├── deps/
+│   ├── inputs/
+│   ├── tessdata/
+│   │   └── *.traineddata
+│   └── platform-tools/
+│       └── adb.exe
+├── config.json
+└── RokTracker.exe
+```
+
+### Advanced Installation (Python)
+
+For developers or users who want to run from source.
+
+1. Download the source code from the [Latest Release](https://github.com/Cyrexxis/RokTracker/releases/latest) or clone the repository
+2. Install [Python 3.11+](https://www.python.org/downloads/release/python-3110/) and [C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+3. Download and place dependencies in the `deps/` folder (same as simple installation)
+4. Set up a virtual environment and install dependencies:
+
+```bash
+python -m venv venv
+./venv/Scripts/activate
+pip install -r requirements_win64.txt
+```
+
+5. Configure your emulator ([see Emulator Setup](#emulator-setup))
+
+**Expected folder structure:**
+
+```
+./
+├── deps/
+│   ├── inputs/
+│   ├── tessdata/
+│   │   └── *.traineddata
+│   └── platform-tools/
+│       └── adb.exe
+├── roktracker/
+├── gui_frontend/
+├── config.json
+└── main.py
+```
+
+---
+
+## Usage
+
+RokTracker is a single unified application that includes all 4 scanners — Kingdom, Alliance, Honor, and Seed — in one interface.
+
+**Executable:** Double-click `RokScanner.exe`
+
+**From source:**
+
+```bash
+python main.py
+```
+
+This opens a PyWebView window with a Quasar-based GUI where you can:
+
+- Select which scanner to run (Kingdom, Alliance, Honor, or Seed)
+- Configure scan settings and presets
+- Monitor scan progress in real time
+- View results and historical data
+
+Scan results are saved to the corresponding `scans_*/` folder (e.g., `scans_kingdom/`, `scans_alliance/`).
+
+---
+
+## Configuration
+
+All settings can be configured directly from the **Settings** page inside the application. There is no need to manually edit `config.json`.
+
+Available settings include:
+
+- **Scan** — kingdom name, number of governors, resume, scroll mode, inactive tracking, power/kill validation, kill reconstruction, City Hall filtering, and output formats (XLSX, CSV, JSONL)
+- **OCR** — engine fallback order (Tesseract / EasyOCR), page segmentation mode, OCR engine mode, languages, and GPU toggle
+- **Emulator** — emulator type (Bluestacks or LD Player), instance name, config file path, and ADB port
+
+---
+
+## Emulator Setup
+
+### Bluestacks 5
+
+Configure your Bluestacks instance with these **required** settings:
+
+**Display Tab** ([Screenshot](images/bluestacks-display.png))
+
+- Resolution: **1600 x 900**
+- DPI: **Custom (450)**
+
+**Advanced Tab** ([Screenshot](images/bluestacks-advanced.png))
+
+- Android Debug Bridge: **Turned on**
+
+#### Automatic Port Detection
+
+1. Open the **Settings** page in the app and set the Bluestacks config path to your `bluestacks.conf` file
+   - Usually located at `C:\ProgramData\BlueStacks_nxt\bluestacks.conf`
+2. Ensure the Bluestacks instance name in Settings matches your instance exactly
+3. If no `bluestacks.conf` file exists, your installation likely uses a fixed port (default: `5555`)
+
+### LD Player (Experimental)
+
+Select **LD Player** as the emulator in the app's **Settings** page. LD Player support is experimental — Bluestacks 5 is recommended for the most reliable experience.
+
+---
+
+## Output Formats
+
+| Format    | Extension | Description                                     |
+| --------- | --------- | ----------------------------------------------- |
+| **Excel** | `.xlsx`   | Default output — full spreadsheet with all data |
+| **CSV**   | `.csv`    | Comma-separated values for easy import          |
+| **JSONL** | `.jsonl`  | JSON Lines — one JSON object per line           |
+
+Configure which formats to generate in the **Settings** page of the app.
+
+---
+
+## Building from Source
+
+To build the standalone executable yourself:
+
+```bash
+# Install Python dependencies
+pip install -r requirements_win64.txt
+pip install pyinstaller-hooks-contrib
+
+# Build the frontend
+cd gui_frontend
+pnpm install
+pnpm run build
+cd ..
+
+# Build the executable
+python build.py
+```
+
+The executable will be created in the `publish/` directory.
+
+For detailed build instructions, see [BUILD.md](BUILD.md).
+
+---
 
 ## Important Notes
-* Version 5 config is not compatible with Version 4 config,
-so you need to adjust the config accordingly.
-* It is important to use `\\` in the config json bluestacks path (not `\`), otherwise you will get a JSONDecodeError. Please open no issues for that.
 
-## Latest Changes
-* Experimental support for LD Player
-* [Wiki tab](https://github.com/Cyrexxis/RokTracker/wiki/) where more stuff gets explained
-* Seed Scanner that works like alliance scanner only for kingdom (fast way to get only kp or power)
-* Now possible to choose the output format (xlsx, jsonl or csv)
-* Default adb port can be changed
-* Option to check for plausible governor power during kingdom scan on the power ranking page
+### Before Scanning
 
-## Summary
+1. **Game language must be English.** Other languages will cause issues with inactive governor detection. Switch for the scan, then switch back.
+2. **Your character must be in the HOME KINGDOM** to get only your kingdom's ranks. Otherwise, you'll capture KvK players from all kingdoms.
+3. **Position the game correctly** before starting:
+   - Kingdom scan: top of power rankings or kill points rankings
+   - Alliance scan: top of the desired alliance leaderboard
+   - Honor scan: top of the personal honor rankings
+4. **Do not interact with the emulator** while scanning is in progress.
+5. **[Kingdom scan]** Your account must rank lower than the number of players you want to scan (e.g., you can't scan the top 100 if your rank is 85 — use a farm account).
+6. **[Kingdom scan]** The resume option starts scanning from the 4th governor visible on screen (the middle one). Position the view accordingly before resuming.
 
-Open Source Rise of Kingdoms Stats Management Tool. Track TOP X Players in kingdom / alliance / honor leaderboard. Depending on what you scan the resulting .xlsx will look different:
+### General
 
-For kingdom rankings Governor Id, Governor Name, Power, Kill Points, Ranged Points, T1/T2/T3/T4/T5 Kills, Total kills, T4+T5 kills, Dead troops, RSS Gathered, RSS Assistance, Helps and Alliance name will get saved.
+- The scanner **does not require admin privileges**.
+- Chinese characters may not display correctly in the terminal but will appear correctly in the output files.
+- You can use your computer normally while scanning, but avoid copying to the clipboard as it may interfere with governor name capture.
+- Always **back up your scan output files** — subsequent scans have a small chance of overwriting previous results.
 
-For the honor and alliance rankings only the governor name and the score will be saved. Because there is no guarantee that the name is correct a picture of the name will be saved in addition.
+> **Version 7 config is not compatible with earlier versions.** If upgrading, launch the app and verify your settings on the **Settings** page.
 
-This is a heavily modified version of the original tool from [nikolakis1919](https://github.com/nikolakis1919) in the repository [https://github.com/nikolakis1919/RokTracker](https://github.com/nikolakis1919/RokTracker)
+---
 
-There are two ways of installing and using the scanner. The first is an exe file with no need for other software to be installed. This approach is described under [simple installation](#simple-installation).
-The second way of using the scanner is by using the python files directly. However, for that approach you need to have a running python installation and have to install the dependencies manually. This is explained under [advanced installation](#advanced-installation).
+## Troubleshooting & Support
 
-# Simple installation
+**Wiki:** Check the [Wiki](https://github.com/Cyrexxis/RokTracker/wiki/) for detailed explanations and guides.
 
-## Required
+**GitHub Discussions:** Post questions in [GitHub Discussions](https://github.com/Cyrexxis/RokTracker/discussions) so others can benefit from the answers.
 
-1. Bluestacks 5 Installation [https://www.bluestacks.com/de/bluestacks-5.html](https://www.bluestacks.com/de/bluestacks-5.html)
-2. To use tesserocr you also need to download the trained tesseract models [https://github.com/tesseract-ocr/tessdata](https://github.com/tesseract-ocr/tessdata)
-3. Adb Platform Tools Download and Extract(See Important Notes) [https://dl.google.com/android/repository/platform-tools_r31.0.3-windows.zip](https://dl.google.com/android/repository/platform-tools_r31.0.3-windows.zip)
-4. Tested on Windows 10 and 11, could work on Windows 7
+**Discord:** `cyrexxis` — available on the official RoK Server and the Chisgule server.
 
-## Setup
+When requesting help, please include:
 
-1. Download the latest release for your system here: [Latest Release](https://github.com/Cyrexxis/RokTracker/releases/latest) (choose RoK Tracker.zip)
-2. Extract the zip in the folder where you want the scanner to be installed in
-3. Download the requirements 2 (tessdata) and 3 (platform-tools) and extract them in the deps folder
-   - tesseract needs to go into `deps/tessdata/`
-   - platform-tools need to go into `deps/platform-tools`
-   - complete tree how the folder should look like are [here](#simple-filefolder-structure)
-4. Configure your Bluestacks instance according to the [instructions](#bluestacks-5-settings)
+- A clear description of the problem
+- Your log file (`*-scanner-web.log` or the relevant log)
+- Your `config.json` file (located in the app folder — remove any sensitive paths before sharing)
 
-## Usage
+> _"It doesn't work"_ without details will be ignored. This is a free-time project — please respect that.
 
-1. Adjust the default options in the `config.json` file to your liking
-2. Double-click the exe like any normal program and enjoy the scanner
-3. The results of the scans can be found in the `scans-*` folder, where * is the type of scan you are doing
+---
 
-## Simple File/Folder Structure
+## License
 
-```
-./
-├─ _internal/
-│ ├─ ...
-├─ deps/
-│ ├─ inputs/
-│ ├─ tessdata/
-│ │ ├─ *.traineddata
-│ │ ├─ ...
-│ ├─ platform-tools/
-│ │ ├─ adb.exe
-│ │ ├─ ...
-├─ config.json
-├─ *.exe
-```
+This project is licensed under the [MIT License](LICENSE).
 
-# Advanced installation
-
-## Required
-
-1. Bluestacks 5 Installation [https://www.bluestacks.com/de/bluestacks-5.html](https://www.bluestacks.com/de/bluestacks-5.html)
-2. Python 3.11 Installation [https://www.python.org/downloads/release/python-3110/](https://www.python.org/downloads/release/python-3110/)
-3. To use tesserocr you also need to download the trained tesseract models [https://github.com/tesseract-ocr/tessdata](https://github.com/tesseract-ocr/tessdata)
-4. Adb Platform Tools Download and Extract(See Important Notes) [https://dl.google.com/android/repository/platform-tools_r31.0.3-windows.zip](https://dl.google.com/android/repository/platform-tools_r31.0.3-windows.zip)
-5. On Windows "Microsoft Build Tools für C++" might be required for some python packages [https://visualstudio.microsoft.com/de/visual-cpp-build-tools/](https://visualstudio.microsoft.com/de/visual-cpp-build-tools/)
-6. Tested on Windows 10 and 11, could work on Windows 7. Tested with Python 3.11.0 and 3.11.7.
-
-## Setup
-
-1. Download the latest release for your system here: [Latest Release](https://github.com/Cyrexxis/RokTracker/releases/latest) (choose the source code option)
-2. Download and install Python and Build Tools for C++
-3. Download the requirements 3 (tessdata) and 4 (platform-tools) and extract them in the deps folder
-   - tesseract needs to go into `deps/tessdata/`
-   - platform-tools need to go into `deps/platform-tools`
-   - complete tree how the folder should look like are [here](#simple-filefolder-structure)
-4. Open your terminal in this folder and create a venv via `python -m venv venv`
-5. Activate that venv via `./venv/Scripts/activate`
-6. Install the python requirements via `pip install -r requirements_win64.txt`
-7. Configure your Bluestacks instance according to the [instructions](#bluestacks-5-settings)
-
-## Usage
-
-1. Open a terminal in your rok tracker folder
-2. Activate the venv via `./venv/Scripts/activate`
-3. Start the scanner:
-   - `python kingdom_scanner_console.py` for the CLI version of the kingdom scanner
-   - `python kingdom_scanner_ui.py` for the GUI version of the kingdom scanner
-   - `python alliance_scanner_console.py` for the CLI version of the alliance scanner
-   - `python alliance_scanner_ui.py` for the GUI version of the alliance scanner
-   - `python honor_scanner_console.py` for the CLI version of the honor scanner
-   - `python honor_scanner_ui.py` for the GUI version of the honor scanner
-4. The results of the scans can be found in the `scans-*` folder, where * is the type of scan you are doing
-
-## Folder/File Structure
-
-```
-./
-├─ deps/
-│ ├─ inputs/
-│ ├─ tessdata/
-│ │ ├─ *.traineddata
-│ │ ├─ ...
-│ ├─ platform-tools/
-│ │ ├─ adb.exe
-│ │ ├─ ...
-├─ config.json
-├─ *_scanner_console.py
-├─ *_scanner_ui.py
-├─ ...
-```
-
-# Features
-
-## Kingdom Scanner
-
-- Complete kingdom ranking scan
-- Detection for wrong kills based on if kills to kill points are correct
-  - In case something doesn't check out the corresponding images are saved in the `manual_review`-folder (prefix F) and a warning is logged in the log file.
-- Option to try to recover kills if wrong kills are detected
-  - Nevertheless the same images as for a fail get copied to the `manual_review`-folder (prefix R) and an info is logged in the log file.
-- Detection of inactive accounts
-  - an inactive account is an account that cannot be clicked in the kingdom rankings
-  - those are skipped automatically, and it is optionally possible to save a screenshot of the name in the `inactives`-folder.
-
-## Alliance and Honor Scanner
-
-- complete alliance ranking scan
-- complete personal honor ranking scan
-- due to how the game works the names are very inaccurate, and it is not possible to track the governor ID
-
-# Bluestacks 5 Settings
-
-## Main configuration
-
-- Display Tab ([Screenshot](images/bluestacks-display.png))
-  - Resolution: 1600x900
-  - DPI: Custom (450)
-- Advanced Tab ([Screenshot](images/bluestacks-advanced.png))
-  - Android Debug Bride: Turned on
-
-## Configuration for automatic port detection
-- Change the entry `bluestacks_config` in the `config.json` file of the scanner to match the location of your conf file
-  - This file is located in your Bluestacks installation folder. If you don't know where you installed it, chances are good that it is located at `C:\ProgramData\Bluestacks_nxt\bluestacks.conf`
-- Make sure to use the correct instance name. The scanner asks for a Bluestacks name and looks for that name in the config file
-- If you don't find a `bluestacks.conf` file chances are high that your installation always uses the same port. The default should be 5555, that's also what the scanner assumes. If you change the port you have to manually change it in the scanner.
-
-# Important Notes
-
-## General
-
-1. It is recommended to use a venv to keep your global python installation clean of the dependencies. After setting up the venv and activating it, you can install the requirements with the requirements.txt file (more about that in the "Usage" section)
-2. The scanner does not need admin privilege to run
-3. Make sure your folder structure matches the expected structure
-4. Bluestacks settings must be the same as in pictures above. THIS IS VERY IMPORTANT!
-5. BE CAREFUL to always copy the .xlsx file from the scans folder when it is finished, because in the next capture, there is a chance for it to get overwritten (very low chance).
-6. Chinese letters might not be shown properly in CMD, but they are visible in the final .xlsx file.
-7. You can do whatever you want in your computer when tool is scanning. Only be warned that copying can result in wrong governor names if it coincides with the name copy of the script.
-8. Game Language has to be English. Anything else will cause trouble in detecting inactive governors. Change it only for scan, if yours is different and then switch back.
-
-## Scan
-
-1. In order to get only your kingdoms ranks, the character that is currently logged in game must be in HOME KINGDOM, else you will get all the players in your KvK including players from different kingdoms.
-2. The view before running the program should be at the top of power rankings or at the top of kill points rankings for the `rok-scanner.py` or at the top of an alliance leader board of your choice or at top of the personal honor rank for the `alliance-scanner.py`. No move should be made in this window until scanning is done.
-3. [Only for kingdom scan] Account must be lower in ranks than the amount of players you want to scan. e.g. Cannot scan top 100 when character's rank is 85. Use a farm account instead.
-4. [Only for kingdom scan] Resume Scan option starts scanning the middle governor that is displayed in screen. The 4th in order. So before starting the tool make sure that you are in the correct view in bluestacks.
-
-# Error reporting / help
-Recently people started to random guess my discord name. So I'll just make it public here, it's simply cyrexxis same as my Github username.
-
-I try my best to help those people, but I will set up some rules for help requests:
-* Send me a message request (I am on the official RoK Server and the Chisgule server)
-* In this message request explain your problem and post your log file.
-  * Simply saying it doesn't work is not enough, and you will get ignored
-* If you respect that you should get an answer from me. But there is no guarantee, because I am doing this project fully in my free time.
-
-A second way I will set up is Github discussions. The advantage with that is that other people see the mistakes and errors, maybe it helps them to fix them by their own.
+Copyright (c) 2021–2022 [nikolakis1919](https://github.com/nikolakis1919) · Copyright (c) 2022–2024 [Cyrexxis](https://github.com/Cyrexxis)

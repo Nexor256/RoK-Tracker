@@ -368,8 +368,8 @@ def WebViewApp():
             "RoK Tracker Suite",
             app,  # type: ignore
             js_api=api,
-            width=1285 + 20,
-            height=740 + 40,
+            width=1150 + 20,
+            height=760 + 40,
         )
 
     webview.start(debug=True, http_server=False)
