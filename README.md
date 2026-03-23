@@ -276,15 +276,15 @@ The installer will be created at:
 ┌─────────────────────────────────────┐
 │           Tauri v2 Shell            │
 │  ┌───────────────────────────────┐  │
-│  │   Vue 3 + shadcn-vue Frontend│  │
-│  │   (HTML/CSS/JS in WebView)   │  │
+│  │   Vue 3 + shadcn-vue Frontend │  │
+│  │   (HTML/CSS/JS in WebView)    │  │
 │  └──────────────┬────────────────┘  │
-│                 │ invoke / listen    │
+│                 │ invoke / listen   │
 │  ┌──────────────▼────────────────┐  │
 │  │   Rust Backend (commands.rs)  │  │
 │  │   Sidecar Manager (sidecar.rs)│  │
 │  └──────────────┬────────────────┘  │
-│                 │ stdin/stdout JSON  │
+│                 │ stdin/stdout JSON │
 │  ┌──────────────▼────────────────┐  │
 │  │   Python Sidecar (Nuitka exe) │  │
 │  │   scanner_sidecar.py          │  │
