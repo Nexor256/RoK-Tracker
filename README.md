@@ -33,19 +33,20 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
 
 ---
 
-## What's New in v1.0.0
+## 🚀 What's New in v1.0.0
 
 - **Tauri v2 desktop app** — replaced PyWebView + Bottle with a native Tauri shell for faster startup and smaller bundle
 - **Modern UI** — rebuilt with Vue 3, shadcn-vue, and Tailwind CSS (dark theme, responsive layout)
 - **Nuitka sidecar** — Python backend compiled with Nuitka (~99 MB, down from ~258 MB with PyInstaller)
 - **Unified installer** — single `.exe` or `.msi` installer, no Python required for end users
 - **All 4 scanners** — Kingdom, Alliance, Honor, and Seed in one application
+- **Auto-updates** — the app automatically checks for new versions and can update itself in-place
 
 > **Note:** v1 config is not compatible with other versions. Launch the app and verify your settings on the **Settings** page.
 
 ---
 
-## Features
+## ✨ Features
 
 ### Kingdom Scanner
 
@@ -80,6 +81,7 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
 - **Modern GUI** — built with Vue 3, shadcn-vue, and Tailwind CSS
 - **Emulator support** — Bluestacks 5 (recommended) and LD Player (experimental)
 - **Configurable timings** — fine-tune delays for different system speeds
+- **Automatic updates** — get notified of new versions and update with one click, no manual downloads needed
 
 ---
 
@@ -91,7 +93,7 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
 
 ---
 
-## Requirements
+## 📋 Requirements
 
 | Requirement            | Details                                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -104,7 +106,7 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
 
 ---
 
-## Installation
+## 📥 Installation
 
 ### Simple Installation (Installer)
 
@@ -119,6 +121,8 @@ No Python, Node.js, or Rust required — just install and run.
    - Download [Tesseract trained data](https://github.com/tesseract-ocr/tessdata) (`eng.traineddata` at minimum) → place in `deps/tessdata/`
 5. **Configure your emulator** ([see Emulator Setup](#emulator-setup))
 6. **Relaunch** the app — you're ready to scan!
+
+> 💡 **Future updates are automatic!** The app will notify you when a new version is available and can update itself with one click — no need to revisit this page.
 
 **Folder structure after first launch:**
 
@@ -246,7 +250,7 @@ Configure which formats to generate in the **Settings** page.
 
 ---
 
-## Building from Source
+## 🔨 Building from Source
 
 To build the standalone installer yourself:
 
@@ -270,7 +274,7 @@ The installer will be created at:
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────┐
@@ -299,10 +303,11 @@ The installer will be created at:
 | **Frontend**       | Vue 3, shadcn-vue, Tailwind CSS    | UI (pages, components, styling)   |
 | **Backend bridge** | Rust (`commands.rs`, `sidecar.rs`) | Routes commands to Python sidecar |
 | **Scanner engine** | Python (Nuitka-compiled)           | OCR, ADB, data processing         |
+| **Auto-updater**   | Tauri Updater Plugin               | Checks GitHub Releases for new versions |
 
 ---
 
-## Important Notes
+## ⚠️ Important Notes
 
 ### Before Scanning
 
@@ -325,7 +330,7 @@ The installer will be created at:
 
 ---
 
-## Troubleshooting & Support
+## 🛠️ Troubleshooting & Support
 
 **Common Issues:**
 

@@ -51,6 +51,7 @@ class AdvancedAdbClient:
         self.started = start_immediately
         self.player = player
         self.script_base = Path(script_base)
+        self._event_cache = {}
 
         if start_immediately:
             self.start_adb()
@@ -136,8 +137,11 @@ class AdvancedAdbClient:
             f"getevent -pl 2>&1 | sed -n '/^add/{{h}}/{input_device_name}/{{x;s/[^/]*//p}}'",
         )
         idn = str(idn).strip()
-        macroFile = open(self.script_base / self.player / event_file, "r")
-        lines = macroFile.readlines()
+        macroKey = str(self.player / Path(event_file))
+        if macroKey not in self._event_cache:
+            with open(self.script_base / self.player / event_file, "r") as f:
+                self._event_cache[macroKey] = f.readlines()
+        lines = self._event_cache[macroKey]
 
         for line in lines:
             self.secure_adb_shell(f"""sendevent {idn} {line.strip()}""")

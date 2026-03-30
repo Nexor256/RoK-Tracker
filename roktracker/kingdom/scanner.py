@@ -113,6 +113,15 @@ class KingdomScanner:
             self.root_dir / "deps" / "inputs",
         )
 
+        # Persistent Tesseract API instance (avoid expensive re-init per governor)
+        self._tess_api = PyTessBaseAPI(
+            path=str(self.tesseract_path), psm=PSM.SINGLE_WORD, oem=OEM.LSTM_ONLY
+        )
+
+        # Persistent Tk root for clipboard access
+        self._tk_root = tkinter.Tk()
+        self._tk_root.withdraw()
+
     def set_governor_callback(
         self, cb: Callable[[GovernorData, AdditionalData], None]
     ) -> None:
@@ -241,33 +250,26 @@ class KingdomScanner:
         tap_positions = {}
 
         while not (gov_info):
-            self.adb_client.secure_adb_screencap().save(
-                self.img_path / "check_more_info.png"
-            )
-
-            image_check = load_cv2_img(
-                self.img_path / "check_more_info.png", cv2.IMREAD_GRAYSCALE
-            )
+            screenshot_pil = self.adb_client.secure_adb_screencap()
+            image_check = pil_to_cv2(screenshot_pil)
+            image_check_gray = cv2.cvtColor(image_check, cv2.COLOR_BGR2GRAY)
 
             # Checking for more info
             im_check_more_info = cropToRegion(
-                image_check, rok_ui.ocr_regions["more_info"]
+                image_check_gray, rok_ui.ocr_regions["more_info"]
             )
             check_more_info = ""
 
-            with PyTessBaseAPI(path=str(self.tesseract_path)) as api:
-                api.SetVariable("tessedit_char_whitelist", "MoreInfo")
-                api.SetImage(Image.fromarray(im_check_more_info))  # type: ignore (pylance is messed up)
-                check_more_info = api.GetUTF8Text()
+            self._tess_api.SetPageSegMode(PSM.AUTO)
+            self._tess_api.SetVariable("tessedit_char_whitelist", "MoreInfo")
+            self._tess_api.SetImage(Image.fromarray(im_check_more_info))  # type: ignore
+            check_more_info = self._tess_api.GetUTF8Text()
+            self._tess_api.SetVariable("tessedit_char_whitelist", "")
 
             # Probably tapped governor is inactive and needs to be skipped
             if not more_info_present(check_more_info):
                 self.inactive_players += 1
                 if track_inactives:
-                    image_check_inactive = load_cv2_img(
-                        self.img_path / "check_more_info.png", cv2.IMREAD_UNCHANGED
-                    )
-
                     roiInactive = (
                         0,
                         self.get_gov_position(current_player, self.inactive_players - 1)
@@ -275,7 +277,7 @@ class KingdomScanner:
                         1400,
                         200,
                     )
-                    image_inactive_raw = cropToRegion(image_check_inactive, roiInactive)
+                    image_inactive_raw = cropToRegion(image_check, roiInactive)
                     write_cv2_img(
                         image_inactive_raw,
                         self.inactive_path / f"inactive {self.inactive_players:03}.png",
@@ -303,20 +305,18 @@ class KingdomScanner:
                         break
             else:
                 gov_info = True
-                image_check = load_cv2_img(
-                    self.img_path / "check_more_info.png", cv2.IMREAD_GRAYSCALE
-                )
 
-                # Checking for more info
-                im_check_more_info = cropToRegion(
-                    image_check, rok_ui.ocr_check_profile_version
+                # Check profile version (reuse in-memory image)
+                im_check_profile = cropToRegion(
+                    image_check_gray, rok_ui.ocr_check_profile_version
                 )
                 check_profile_version = ""
 
-                with PyTessBaseAPI(path=str(self.tesseract_path)) as api:
-                    api.SetVariable("tessedit_char_whitelist", "Aclaim")
-                    api.SetImage(Image.fromarray(im_check_more_info))  # type: ignore (pylance is messed up)
-                    check_profile_version = api.GetUTF8Text()
+                self._tess_api.SetPageSegMode(PSM.AUTO)
+                self._tess_api.SetVariable("tessedit_char_whitelist", "Aclaim")
+                self._tess_api.SetImage(Image.fromarray(im_check_profile))  # type: ignore
+                check_profile_version = self._tess_api.GetUTF8Text()
+                self._tess_api.SetVariable("tessedit_char_whitelist", "")
 
                 if "Acclaim" in check_profile_version:
                     ui_positions = rok_ui.ocr_regions
@@ -331,8 +331,9 @@ class KingdomScanner:
             self.state_callback("Scanning general page")
 
             # take screenshot before copying the name
-            self.adb_client.secure_adb_screencap().save(self.img_path / "gov_info.png")
-            image = load_cv2_img(self.img_path / "gov_info.png", cv2.IMREAD_UNCHANGED)
+            gov_info_pil = self.adb_client.secure_adb_screencap()
+            gov_info_pil.save(self.img_path / "gov_info.png")  # keep for review
+            image = pil_to_cv2(gov_info_pil)
 
             if self.scan_options.name:
                 # nickname copy
@@ -345,9 +346,8 @@ class KingdomScanner:
                         wait_random_range(
                             self.timings["copy_wait"], self.max_random_delay
                         )
-                        tk_clipboard = tkinter.Tk()
-                        governor_data.name = tk_clipboard.clipboard_get()
-                        tk_clipboard.destroy()
+                        self._tk_root.update()
+                        governor_data.name = self._tk_root.clipboard_get()
                         break
                     except:
                         console.log("Name copy failed, retying")
@@ -355,43 +355,42 @@ class KingdomScanner:
                         copy_try = copy_try + 1
 
             # 1st image data (ID, Power, Killpoints, Alliance)
-            with PyTessBaseAPI(
-                path=str(self.tesseract_path), psm=PSM.SINGLE_WORD, oem=OEM.LSTM_ONLY
-            ) as api:
-                if self.scan_options.power:
-                    im_gov_power = cropToRegion(image, ui_positions["power"])
-                    im_gov_power_bw = preprocessImage(im_gov_power, 3, 100, 12, True)
+            api = self._tess_api
+            api.SetPageSegMode(PSM.SINGLE_WORD)
+            if self.scan_options.power:
+                im_gov_power = cropToRegion(image, ui_positions["power"])
+                im_gov_power_bw = preprocessImage(im_gov_power, 3, 100, 12, True)
 
-                    governor_data.power = ocr_number(api, im_gov_power_bw)
+                governor_data.power = ocr_number(api, im_gov_power_bw)
 
-                if self.scan_options.killpoints:
-                    im_gov_killpoints = cropToRegion(
-                        image, ui_positions["killpoints"]
-                    )
-                    im_gov_killpoints_bw = preprocessImage(
-                        im_gov_killpoints, 3, 100, 12, True
-                    )
+            if self.scan_options.killpoints:
+                im_gov_killpoints = cropToRegion(
+                    image, ui_positions["killpoints"]
+                )
+                im_gov_killpoints_bw = preprocessImage(
+                    im_gov_killpoints, 3, 100, 12, True
+                )
 
-                    governor_data.killpoints = ocr_number(api, im_gov_killpoints_bw)
+                governor_data.killpoints = ocr_number(api, im_gov_killpoints_bw)
 
-                api.SetPageSegMode(PSM.SINGLE_LINE)
-                if self.scan_options.id:
-                    im_gov_id = cropToRegion(image, ui_positions["gov_id"])
-                    im_gov_id_gray = cv2.cvtColor(im_gov_id, cv2.COLOR_BGR2GRAY)
-                    im_gov_id_gray = cv2.bitwise_not(im_gov_id_gray)
-                    (thresh, im_gov_id_bw) = cv2.threshold(
-                        im_gov_id_gray, 120, 255, cv2.THRESH_BINARY
-                    )
+            api.SetPageSegMode(PSM.SINGLE_LINE)
+            if self.scan_options.id:
+                im_gov_id = cropToRegion(image, ui_positions["gov_id"])
+                im_gov_id_gray = cv2.cvtColor(im_gov_id, cv2.COLOR_BGR2GRAY)
+                im_gov_id_gray = cv2.bitwise_not(im_gov_id_gray)
+                (thresh, im_gov_id_bw) = cv2.threshold(
+                    im_gov_id_gray, 120, 255, cv2.THRESH_BINARY
+                )
 
-                    governor_data.id = ocr_number(api, im_gov_id_bw)
+                governor_data.id = ocr_number(api, im_gov_id_bw)
 
-                if self.scan_options.alliance:
-                    im_alliance_tag = cropToRegion(
-                        image, ui_positions["alliance_name"]
-                    )
-                    im_alliance_bw = preprocessImage(im_alliance_tag, 3, 50, 12, True)
+            if self.scan_options.alliance:
+                im_alliance_tag = cropToRegion(
+                    image, ui_positions["alliance_name"]
+                )
+                im_alliance_bw = preprocessImage(im_alliance_tag, 3, 50, 12, True)
 
-                    governor_data.alliance = ocr_text(api, im_alliance_bw)
+                governor_data.alliance = ocr_text(api, im_alliance_bw)
 
         if self.is_page_needed(2):
             # kills tier
@@ -399,108 +398,101 @@ class KingdomScanner:
             self.state_callback("Scanning kills page")
             wait_random_range(self.timings["kills_open"], self.max_random_delay)
 
-            self.adb_client.secure_adb_screencap().save(
-                self.img_path / "kills_tier.png"
-            )
-            image2 = load_cv2_img(
-                self.img_path / "kills_tier.png", cv2.IMREAD_UNCHANGED
-            )
-            image2 = cv2.cvtColor(image2, cv2.COLOR_BGR2RGB)
+            kills_pil = self.adb_client.secure_adb_screencap()
+            kills_pil.save(self.img_path / "kills_tier.png")  # keep for review
+            image2 = pil_to_cv2(kills_pil)
 
-            with PyTessBaseAPI(
-                path=str(self.tesseract_path), psm=PSM.SINGLE_WORD, oem=OEM.LSTM_ONLY
-            ) as api:
-                if self.scan_options.t1_kills:
-                    # tier 1 Kills
-                    governor_data.t1_kills = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t1_kills"]
-                    )
+            api = self._tess_api
+            api.SetPageSegMode(PSM.SINGLE_WORD)
+            if self.scan_options.t1_kills:
+                # tier 1 Kills
+                governor_data.t1_kills = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t1_kills"]
+                )
 
-                    # tier 1 KP
-                    governor_data.t1_kp = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t1_killpoints"]
-                    )
+                # tier 1 KP
+                governor_data.t1_kp = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t1_killpoints"]
+                )
 
-                if self.scan_options.t2_kills:
-                    # tier 2 Kills
-                    governor_data.t2_kills = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t2_kills"]
-                    )
+            if self.scan_options.t2_kills:
+                # tier 2 Kills
+                governor_data.t2_kills = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t2_kills"]
+                )
 
-                    # tier 2 KP
-                    governor_data.t2_kp = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t2_killpoints"]
-                    )
+                # tier 2 KP
+                governor_data.t2_kp = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t2_killpoints"]
+                )
 
-                if self.scan_options.t3_kills:
-                    # tier 3 Kills
-                    governor_data.t3_kills = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t3_kills"]
-                    )
+            if self.scan_options.t3_kills:
+                # tier 3 Kills
+                governor_data.t3_kills = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t3_kills"]
+                )
 
-                    # tier 3 KP
-                    governor_data.t3_kp = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t3_killpoints"]
-                    )
+                # tier 3 KP
+                governor_data.t3_kp = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t3_killpoints"]
+                )
 
-                if self.scan_options.t4_kills:
-                    # tier 4 Kills
-                    governor_data.t4_kills = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t4_kills"]
-                    )
+            if self.scan_options.t4_kills:
+                # tier 4 Kills
+                governor_data.t4_kills = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t4_kills"]
+                )
 
-                    # tier 4 KP
-                    governor_data.t4_kp = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t4_killpoints"]
-                    )
+                # tier 4 KP
+                governor_data.t4_kp = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t4_killpoints"]
+                )
 
-                if self.scan_options.t5_kills:
-                    # tier 5 Kills
-                    governor_data.t5_kills = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t5_kills"]
-                    )
+            if self.scan_options.t5_kills:
+                # tier 5 Kills
+                governor_data.t5_kills = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t5_kills"]
+                )
 
-                    # tier 5 KP
-                    governor_data.t5_kp = preprocess_and_ocr_number(
-                        api, image2, ui_positions["t5_killpoints"]
-                    )
+                # tier 5 KP
+                governor_data.t5_kp = preprocess_and_ocr_number(
+                    api, image2, ui_positions["t5_killpoints"]
+                )
 
-                if self.scan_options.ranged:
-                    # ranged points
-                    governor_data.ranged_points = preprocess_and_ocr_number(
-                        api, image2, ui_positions["ranged_points"]
-                    )
+            if self.scan_options.ranged:
+                # ranged points
+                governor_data.ranged_points = preprocess_and_ocr_number(
+                    api, image2, ui_positions["ranged_points"]
+                )
 
         if self.is_page_needed(3):
             # More info tab
             self.adb_client.secure_adb_tap(tap_positions["more_info"])
             self.state_callback("Scanning more info page")
             wait_random_range(self.timings["info_open"], self.max_random_delay)
-            self.adb_client.secure_adb_screencap().save(self.img_path / "more_info.png")
-            image3 = load_cv2_img(self.img_path / "more_info.png", cv2.IMREAD_UNCHANGED)
+            image3 = pil_to_cv2(self.adb_client.secure_adb_screencap())
 
-            with PyTessBaseAPI(
-                path=str(self.tesseract_path), psm=PSM.SINGLE_WORD, oem=OEM.LSTM_ONLY
-            ) as api:
-                if self.scan_options.deaths:
-                    governor_data.dead = preprocess_and_ocr_number(
-                        api, image3, ui_positions["deads"], True
-                    )
+            api = self._tess_api
+            api.SetPageSegMode(PSM.SINGLE_WORD)
+            if self.scan_options.deaths:
+                governor_data.dead = preprocess_and_ocr_number(
+                    api, image3, ui_positions["deads"], True
+                )
 
-                if self.scan_options.assistance:
-                    governor_data.rss_assistance = preprocess_and_ocr_number(
-                        api, image3, ui_positions["rss_assisted"], True
-                    )
+            if self.scan_options.assistance:
+                governor_data.rss_assistance = preprocess_and_ocr_number(
+                    api, image3, ui_positions["rss_assisted"], True
+                )
 
-                if self.scan_options.gathered:
-                    governor_data.rss_gathered = preprocess_and_ocr_number(
-                        api, image3, ui_positions["rss_gathered"], True
-                    )
+            if self.scan_options.gathered:
+                governor_data.rss_gathered = preprocess_and_ocr_number(
+                    api, image3, ui_positions["rss_gathered"], True
+                )
 
-                if self.scan_options.helps:
-                    governor_data.helps = preprocess_and_ocr_number(
-                        api, image3, ui_positions["alliance_helps"], True
-                    )
+            if self.scan_options.helps:
+                governor_data.helps = preprocess_and_ocr_number(
+                    api, image3, ui_positions["alliance_helps"], True
+                )
 
         # Just to check the progress, printing in cmd the result for each governor
         governor_data.flag_unknown()
@@ -595,9 +587,10 @@ class KingdomScanner:
             # Tap the input field first
             self.adb_client.secure_adb_tap(tap_positions["id_input_field"])
             time.sleep(0.3)
-            # Send DEL keys to clear the field
-            for _ in range(15):
-                self.adb_client.secure_adb_shell("input keyevent KEYCODE_DEL")
+            # Send DEL keys to clear the field (batched into single ADB call)
+            self.adb_client.secure_adb_shell(
+                "input keyevent " + " ".join(["67"] * 15)
+            )
         else:
             # Tap input field on first search
             self.adb_client.secure_adb_tap(tap_positions["id_input_field"])
@@ -775,26 +768,17 @@ class KingdomScanner:
             # Check for duplicate governor
             if data_handler.is_duplicate(to_int_check(gov_data.id)):
                 roi = (196, 698, 52, 27)
-                self.adb_client.secure_adb_screencap().save(
-                    self.img_path / "currentState.png"
-                )
-                image = load_cv2_img(
-                    self.img_path / "currentState.png", cv2.IMREAD_UNCHANGED
-                )
+                image = pil_to_cv2(self.adb_client.secure_adb_screencap())
 
                 im_ranking = cropToRegion(image, roi)
                 im_ranking_bw = preprocessImage(im_ranking, 3, 90, 12, True)
 
                 ranking = ""
 
-                with PyTessBaseAPI(
-                    path=str(self.tesseract_path),
-                    psm=PSM.SINGLE_WORD,
-                    oem=OEM.LSTM_ONLY,
-                ) as api:
-                    api.SetImage(Image.fromarray(im_ranking_bw))  # type: ignore (pylance is messed up)
-                    ranking = api.GetUTF8Text()
-                    ranking = re.sub("[^0-9]", "", ranking)
+                self._tess_api.SetPageSegMode(PSM.SINGLE_WORD)
+                self._tess_api.SetImage(Image.fromarray(im_ranking_bw))  # type: ignore
+                ranking = self._tess_api.GetUTF8Text()
+                ranking = re.sub("[^0-9]", "", ranking)
 
                 if ranking == "" or to_int_check(ranking) != 999:
                     self.output_handler(
@@ -864,9 +848,10 @@ class KingdomScanner:
                 else:
                     self.save_failed("power", gov_data)
 
-            # Write results in excel file
+            # Write results (batch save every 10 governors for performance)
             data_handler.write_governor(gov_data)
-            data_handler.save()
+            if (i + 1) % 10 == 0 or self.stop_scan:
+                data_handler.save()
 
             additional_info = AdditionalData(
                 current_governor=i + 1,
@@ -888,8 +873,20 @@ class KingdomScanner:
         self._run_ch_verification_pass(data_handler, rok_ui.tap_positions)
 
         self.adb_client.kill_adb()  # make sure to clean up adb server
+        self.cleanup()
         self.state_callback("Scan finished")
         return
+
+    def cleanup(self):
+        """Release persistent resources."""
+        try:
+            self._tess_api.End()
+        except Exception:
+            pass
+        try:
+            self._tk_root.destroy()
+        except Exception:
+            pass
 
     def end_scan(self):
         self.stop_scan = True

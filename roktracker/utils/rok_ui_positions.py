@@ -64,11 +64,11 @@ tap_positions_old = {
     # third screen
     "close_info": (1396, 58),
     # CH search flow
-    "back_button": (68, 48),
-    "settings": (1396, 798),
-    "search_gov_button": (740, 440),
-    "id_input_field": (740, 320),
-    "search_button": (1040, 320),
+   "back_button": (1393, 53),
+    "settings": (1357, 740),
+    "search_gov_button": (1157, 230),
+    "id_input_field": (405, 140),
+    "search_button": (1342, 142),
 }
 
 # format: (x, y)
@@ -81,11 +81,11 @@ tap_positions = {
     # third screen
     "close_info": (1396, 58),
     # CH search flow
-    "back_button": (68, 48),
-    "settings": (1396, 798),
-    "search_gov_button": (740, 440),
-    "id_input_field": (740, 320),
-    "search_button": (1040, 320),
+    "back_button": (1393, 53),
+    "settings": (1357, 740),
+    "search_gov_button": (1157, 230),
+    "id_input_field": (405, 140),
+    "search_button": (1342, 142),
 }
 
 # City Hall level crop regions
