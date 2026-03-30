@@ -8,8 +8,12 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_process::init())
         .manage(SidecarManager::new())
         .setup(|app| {
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
             // Create deps folders next to the exe so the user just needs to add files
             let exe_dir = std::env::current_exe()
                 .ok()

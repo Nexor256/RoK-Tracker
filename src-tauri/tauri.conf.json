@@ -25,6 +25,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/icon.ico"
     ],
@@ -34,6 +35,17 @@
     "resources": {
       "../config.json": "config.json",
       "../deps/inputs": "deps/inputs"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ1MzhFNTYwREMzNzUxQUYKUldTdlVUZmNZT1U0UllWMTljZkJDZnVOWUh1bkhHbkVKUnE4VTBuT3VZTE9aTys4N0ZVS2pncVgK",
+      "endpoints": [
+        "https://github.com/AbdUlrahman097/RoK-Tracker/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

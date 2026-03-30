@@ -92,6 +92,9 @@
 
     <!-- Toast notifications -->
     <Toaster />
+
+    <!-- Update notifier -->
+    <UpdateNotifier />
   </div>
 </template>
 
@@ -117,6 +120,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Toaster } from '@/components/ui/toast'
+import UpdateNotifier from '@/components/UpdateNotifier.vue'
 import { Radar, ScanLine, Calculator, Settings } from 'lucide-vue-next'
 import { onSidecarEvent } from '@/lib/tauriClient'
 import * as ipc from '@/lib/ipcClient'
