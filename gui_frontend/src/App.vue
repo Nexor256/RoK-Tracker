@@ -93,8 +93,9 @@
     <!-- Toast notifications -->
     <Toaster />
 
-    <!-- Update notifier -->
+    <!-- Notifiers -->
     <UpdateNotifier />
+    <ErrorNotifier />
   </div>
 </template>
 
@@ -121,14 +122,18 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Toaster, toast } from '@/components/ui/toast'
 import UpdateNotifier from '@/components/UpdateNotifier.vue'
+import ErrorNotifier from '@/components/ErrorNotifier.vue'
 import { Radar, ScanLine, Calculator, Settings } from 'lucide-vue-next'
 import { onSidecarEvent } from '@/lib/tauriClient'
 import * as ipc from '@/lib/ipcClient'
+import { useErrorStore } from '@/stores/error-store'
+import { analyzeError } from '@/util/error-mapper'
 
 const configStore = useConfigStore()
 const allianceStore = useAllianceStore()
 const honorStore = useHonorStore()
 const seedStore = useSeedStore()
+const errorStore = useErrorStore()
 
 const darkMode = useDark()
 const toggleDarkMode = useToggle(darkMode)
@@ -272,11 +277,18 @@ async function init() {
   // Global error handler for sidecar errors
   unlisteners.push(await onSidecarEvent('error', (data) => {
     console.error('Sidecar error:', data)
+    
+    // Fallback toast for the log history
     toast({
       title: 'Backend Error',
       description: String(data),
       variant: 'destructive',
     })
+
+    // Analyze and show the smart error dialog
+    const errorString = String(data)
+    const { title, suggestion } = analyzeError(errorString)
+    errorStore.showError(title, errorString, suggestion)
   }))
 
   // Load config and presets via sidecar
