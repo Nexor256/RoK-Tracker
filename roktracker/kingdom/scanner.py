@@ -254,15 +254,16 @@ class KingdomScanner:
             image_check = pil_to_cv2(screenshot_pil)
             image_check_gray = cv2.cvtColor(image_check, cv2.COLOR_BGR2GRAY)
 
-            # Checking for more info
+            # Checking for more info — use HSV masking to handle themed profiles
             im_check_more_info = cropToRegion(
-                image_check_gray, rok_ui.ocr_regions["more_info"]
+                image_check, rok_ui.ocr_regions["more_info"]
             )
+            im_check_more_info_bw = preprocessImageRobust(im_check_more_info, 3, 150, 10, True)
             check_more_info = ""
 
             self._tess_api.SetPageSegMode(PSM.AUTO)
             self._tess_api.SetVariable("tessedit_char_whitelist", "MoreInfo")
-            self._tess_api.SetImage(Image.fromarray(im_check_more_info))  # type: ignore
+            self._tess_api.SetImage(Image.fromarray(im_check_more_info_bw))  # type: ignore
             check_more_info = self._tess_api.GetUTF8Text()
             self._tess_api.SetVariable("tessedit_char_whitelist", "")
 
@@ -307,6 +308,8 @@ class KingdomScanner:
                 gov_info = True
 
                 # Check profile version (reuse in-memory image)
+                # Try original grayscale first (works on normal profiles),
+                # then fallback to robust HSV preprocessing (themed profiles).
                 im_check_profile = cropToRegion(
                     image_check_gray, rok_ui.ocr_check_profile_version
                 )
@@ -317,6 +320,18 @@ class KingdomScanner:
                 self._tess_api.SetImage(Image.fromarray(im_check_profile))  # type: ignore
                 check_profile_version = self._tess_api.GetUTF8Text()
                 self._tess_api.SetVariable("tessedit_char_whitelist", "")
+
+                # Fallback: robust preprocessing for themed profiles
+                if "Acclaim" not in check_profile_version:
+                    im_check_profile_color = cropToRegion(
+                        image_check, rok_ui.ocr_check_profile_version
+                    )
+                    im_check_profile_bw = preprocessImageRobust(im_check_profile_color, 3, 150, 10, True)
+                    self._tess_api.SetPageSegMode(PSM.AUTO)
+                    self._tess_api.SetVariable("tessedit_char_whitelist", "Aclaim")
+                    self._tess_api.SetImage(Image.fromarray(im_check_profile_bw))  # type: ignore
+                    check_profile_version = self._tess_api.GetUTF8Text()
+                    self._tess_api.SetVariable("tessedit_char_whitelist", "")
 
                 if "Acclaim" in check_profile_version:
                     ui_positions = rok_ui.ocr_regions
@@ -360,8 +375,11 @@ class KingdomScanner:
             if self.scan_options.power:
                 im_gov_power = cropToRegion(image, ui_positions["power"])
                 im_gov_power_bw = preprocessImage(im_gov_power, 3, 100, 12, True)
-
                 governor_data.power = ocr_number(api, im_gov_power_bw)
+                # Fallback to robust preprocessing for themed profiles
+                if governor_data.power == "Unknown":
+                    im_gov_power_bw = preprocessImageRobust(im_gov_power, 3, 100, 12, True)
+                    governor_data.power = ocr_number(api, im_gov_power_bw)
 
             if self.scan_options.killpoints:
                 im_gov_killpoints = cropToRegion(
@@ -370,8 +388,13 @@ class KingdomScanner:
                 im_gov_killpoints_bw = preprocessImage(
                     im_gov_killpoints, 3, 100, 12, True
                 )
-
                 governor_data.killpoints = ocr_number(api, im_gov_killpoints_bw)
+                # Fallback to robust preprocessing for themed profiles
+                if governor_data.killpoints == "Unknown":
+                    im_gov_killpoints_bw = preprocessImageRobust(
+                        im_gov_killpoints, 3, 100, 12, True
+                    )
+                    governor_data.killpoints = ocr_number(api, im_gov_killpoints_bw)
 
             api.SetPageSegMode(PSM.SINGLE_LINE)
             if self.scan_options.id:
@@ -381,8 +404,11 @@ class KingdomScanner:
                 (thresh, im_gov_id_bw) = cv2.threshold(
                     im_gov_id_gray, 120, 255, cv2.THRESH_BINARY
                 )
-
                 governor_data.id = ocr_number(api, im_gov_id_bw)
+                # Fallback to robust preprocessing for themed profiles
+                if governor_data.id == "Unknown":
+                    im_gov_id_bw = preprocessImageRobust(im_gov_id, 3, 120, 12, True)
+                    governor_data.id = ocr_number(api, im_gov_id_bw)
 
             if self.scan_options.alliance:
                 im_alliance_tag = cropToRegion(

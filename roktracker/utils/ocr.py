@@ -1,6 +1,7 @@
 import cv2
 import re
 import tesserocr
+import numpy as np
 
 from PIL import Image
 from cv2.typing import MatLike
@@ -45,10 +46,59 @@ def preprocessImage(
     return im_bw
 
 
+def preprocessImageRobust(
+    image: MatLike,
+    scale_factor: int,
+    threshold: int,
+    border_size: int,
+    invert: bool = False,
+) -> MatLike:
+    """Enhanced preprocessing using HSV color masking to handle themed backgrounds.
+
+    On themed governor profiles (e.g. Colosseum, Arena), colorful background
+    pixels survive simple grayscale thresholding and create OCR noise.  This
+    function converts to the HSV color space first and builds a mask that keeps
+    only bright, low-saturation pixels — i.e. the white / light game-text —
+    before binarising.  Falls back to the legacy path when the input is already
+    single-channel.
+    """
+    im_big = cv2.resize(image, (0, 0), fx=scale_factor, fy=scale_factor)
+
+    if len(im_big.shape) == 3 and im_big.shape[2] >= 3:
+        # --- colour image: use HSV masking ---
+        hsv = cv2.cvtColor(im_big, cv2.COLOR_BGR2HSV)
+        v_channel = hsv[:, :, 2]
+        s_channel = hsv[:, :, 1]
+
+        # Keep bright, low-saturation pixels (white / light text)
+        bright_mask = cv2.inRange(v_channel, np.array(180), np.array(255))
+        low_sat_mask = cv2.inRange(s_channel, np.array(0), np.array(60))
+        text_mask = cv2.bitwise_and(bright_mask, low_sat_mask)
+
+        gray = cv2.cvtColor(im_big, cv2.COLOR_BGR2GRAY)
+        masked = cv2.bitwise_and(gray, gray, mask=text_mask)
+
+        # Invert so text becomes black-on-white (Tesseract default)
+        im_bw = cv2.bitwise_not(masked)
+        # Clean-up threshold
+        (_, im_bw) = cv2.threshold(im_bw, threshold, 255, cv2.THRESH_BINARY)
+    else:
+        # --- grayscale fallback (same as preprocessImage) ---
+        im_gray = im_big if len(im_big.shape) == 2 else cv2.cvtColor(im_big, cv2.COLOR_BGR2GRAY)
+        if invert:
+            im_gray = cv2.bitwise_not(im_gray)
+        (_, im_bw) = cv2.threshold(im_gray, threshold, 255, cv2.THRESH_BINARY)
+
+    im_bw = cropToTextWithBorder(im_bw, border_size)
+    return im_bw
+
+
 def ocr_number(api, image: MatLike):
     api.SetImage(Image.fromarray(image))
     score = api.GetUTF8Text()
     score = re.sub("[^0-9]", "", score)
+    if not score:
+        return "Unknown"
     return score
 
 
@@ -64,6 +114,15 @@ def preprocess_and_ocr_number(
     cropped_image = cropToRegion(image, region)
     cropped_bw_image = preprocessImage(cropped_image, 3, 150, 12, invert)
 
+    return ocr_number(api, cropped_bw_image)
+
+
+def preprocess_and_ocr_number_robust(
+    api, image: MatLike, region: Tuple[int, int, int, int], invert: bool = False
+):
+    """Crop, preprocess with HSV masking, and OCR a number region."""
+    cropped_image = cropToRegion(image, region)
+    cropped_bw_image = preprocessImageRobust(cropped_image, 3, 150, 12, invert)
     return ocr_number(api, cropped_bw_image)
 
 
