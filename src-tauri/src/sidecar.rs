@@ -21,18 +21,23 @@ impl SidecarManager {
 
     /// Spawn the Python sidecar process and begin reading stdout events.
     pub fn spawn<R: Runtime>(&self, app_handle: AppHandle<R>) -> Result<(), String> {
-        // Get the project root — in dev mode this is the repo root
-        let project_root = std::env::current_dir()
+        // Get the project root.
+        // In dev mode, current_dir() points to src-tauri/ so we go up one level
+        // to reach the repo root where scanner_sidecar.py lives.
+        let cwd = std::env::current_dir()
             .map_err(|e| format!("Failed to get current dir: {}", e))?;
 
         // In dev mode, run scanner_sidecar.py directly with Python
         // In prod mode, run the bundled sidecar executable (placed by Tauri externalBin)
         let (program, args, work_dir) = if cfg!(debug_assertions) {
+            // Tauri runs from src-tauri/, so the repo root is one level up
+            let project_root = cwd.parent().unwrap_or(&cwd).to_path_buf();
             let script = project_root.join("scanner_sidecar.py");
-            ("python".to_string(), vec![script.to_string_lossy().to_string()], project_root.clone())
+            eprintln!("[sidecar] Dev mode — script: {}", script.display());
+            ("python".to_string(), vec![script.to_string_lossy().to_string()], project_root)
         } else {
             // Tauri places externalBin binaries next to the app executable,
-            // stripping the target triple suffix at install time.
+            // keeping the target-triple suffix: scanner_sidecar-{triple}[.exe]
             let exe_dir = std::env::current_exe()
                 .map_err(|e| format!("Failed to get exe path: {}", e))?
                 .parent()
@@ -40,8 +45,27 @@ impl SidecarManager {
                 .to_path_buf();
 
             let ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
-            let sidecar_name = format!("scanner_sidecar{}", ext);
-            let sidecar_path = exe_dir.join(&sidecar_name);
+            let target_triple = env!("TARGET_TRIPLE");
+
+            // Tauri's NSIS installer strips the target-triple suffix from
+            // externalBin filenames, so we check both the suffixed name
+            // (used during development builds) and the plain name (installed).
+            let candidates = [
+                format!("scanner_sidecar-{}{}", target_triple, ext),  // dev / cargo build
+                format!("scanner_sidecar{}", ext),                     // NSIS installed
+            ];
+
+            let sidecar_path = candidates.iter()
+                .map(|name| exe_dir.join(name))
+                .inspect(|p| eprintln!("[sidecar] Checking: {}", p.display()))
+                .find(|p| p.exists())
+                .ok_or_else(|| format!(
+                    "Sidecar binary not found next to '{}'. Tried: {}",
+                    exe_dir.display(),
+                    candidates.join(", ")
+                ))?;
+
+            eprintln!("[sidecar] Found sidecar at: {}", sidecar_path.display());
 
             (sidecar_path.to_string_lossy().to_string(), vec![], exe_dir)
         };
@@ -50,8 +74,8 @@ impl SidecarManager {
         command.args(&args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .current_dir(work_dir);
+            .stderr(Stdio::piped())
+            .current_dir(&work_dir);
 
         #[cfg(windows)]
         {
@@ -66,12 +90,14 @@ impl SidecarManager {
         // Take ownership of stdin
         let stdin = child.stdin.take().ok_or("Failed to get sidecar stdin")?;
         let stdout = child.stdout.take().ok_or("Failed to get sidecar stdout")?;
+        let stderr = child.stderr.take().ok_or("Failed to get sidecar stderr")?;
 
         *self.stdin_handle.lock().unwrap() = Some(stdin);
         *self.child.lock().unwrap() = Some(child);
 
         // Spawn a reader thread that parses JSON lines from stdout
         // and emits them as Tauri events to the frontend
+        let app_handle_stdout = app_handle.clone();
         thread::spawn(move || {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
@@ -90,7 +116,7 @@ impl SidecarManager {
 
                                 // Emit as a Tauri event: "sidecar:{event_name}"
                                 let event_name = format!("sidecar:{}", event);
-                                let _ = app_handle.emit(&event_name, data);
+                                let _ = app_handle_stdout.emit(&event_name, data);
                             }
                             Err(e) => {
                                 eprintln!("Sidecar JSON parse error: {} — line: {}", e, text);
@@ -99,6 +125,38 @@ impl SidecarManager {
                     }
                     Err(e) => {
                         eprintln!("Sidecar stdout read error: {}", e);
+                        break;
+                    }
+                }
+            }
+        });
+
+        // Spawn a reader thread for stderr — log to file and emit to frontend
+        let stderr_log_path = work_dir.join("sidecar_stderr.log");
+        thread::spawn(move || {
+            let mut log_file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&stderr_log_path)
+                .ok();
+
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                match line {
+                    Ok(text) => {
+                        if text.trim().is_empty() {
+                            continue;
+                        }
+                        // Write to log file
+                        if let Some(ref mut f) = log_file {
+                            let _ = writeln!(f, "{}", text);
+                        }
+                        // Also emit to frontend so errors are visible
+                        let _ = app_handle.emit("sidecar:stderr", &text);
+                        eprintln!("[sidecar stderr] {}", text);
+                    }
+                    Err(e) => {
+                        eprintln!("Sidecar stderr read error: {}", e);
                         break;
                     }
                 }

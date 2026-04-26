@@ -17,6 +17,9 @@ class AdditionalData(BaseModel):
     ch_current_governor: int = 0
     ch_total_governors: int = 0
     current_time: datetime.datetime = datetime.datetime.now().astimezone()
+    avg_time_per_governor: float = 0.0
+    scan_speed_per_hour: float = 0.0
+    elapsed_sec: float = 0.0
 
     def eta(self) -> str:
         return format_timedelta_to_HHMMSS(

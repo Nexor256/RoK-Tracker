@@ -60,6 +60,7 @@ def main():
         sys.executable,
         "-m", "nuitka",
         "--onefile",
+        "--onefile-no-compression",
         "--assume-yes-for-downloads",
         f"--output-dir={output_dir}",
         f"--output-filename=scanner_sidecar{ext}",

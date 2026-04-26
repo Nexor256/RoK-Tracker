@@ -65,8 +65,17 @@ def emit_event(event: str, data=None):
     if data is not None:
         msg["data"] = data
     with _write_lock:
-        sys.stdout.write(json.dumps(msg) + "\n")
-        sys.stdout.flush()
+        try:
+            sys.stdout.write(json.dumps(msg) + "\n")
+            sys.stdout.flush()
+        except OSError as e:
+            # Handle broken pipes
+            if e.errno in (22, 9, 32):
+                logger.warning("stdout pipe broken, exiting sidecar.")
+                # Use os._exit() to kill all threads immediately since IPC is dead
+                os._exit(0)
+            else:
+                raise
 
 
 # ---------------------------------------------------------------------------
@@ -338,9 +347,21 @@ def cmd_save_presets(args):
 
 @command("StartKingdomScan")
 def cmd_start_kingdom(args):
+    preset_data = args.get("preset")
+    if preset_data is None:
+        # Fallback: use a "Full" preset with all scan selections
+        logger.info("No preset provided, using default Full preset")
+        preset_data = {
+            "name": "Full",
+            "selections": [
+                "ID", "Name", "Power", "Killpoints", "Alliance",
+                "T1 Kills", "T2 Kills", "T3 Kills", "T4 Kills", "T5 Kills",
+                "Ranged", "Deaths", "Assistance", "Gathered", "Helps",
+            ],
+        }
     Thread(
         target=_start_kingdom_scanner,
-        args=(json.dumps(args["config"]), json.dumps(args["preset"])),
+        args=(json.dumps(args["config"]), json.dumps(preset_data)),
     ).start()
 
 
@@ -400,8 +421,16 @@ def cmd_confirm_batch(args):
 # Main loop — read JSON commands from stdin line by line
 # ---------------------------------------------------------------------------
 def main():
-    emit_event("ready")
+    # Log startup diagnostics for debugging production issues
+    app_root = dummy_root.get_app_root()
     logger.info("Sidecar started, waiting for commands on stdin")
+    logger.info(f"  app_root   = {app_root}")
+    logger.info(f"  config.json exists = {(app_root / 'config.json').exists()}")
+    logger.info(f"  python     = {sys.executable}")
+    logger.info(f"  version    = {sys.version}")
+    logger.info(f"  cwd        = {os.getcwd()}")
+
+    emit_event("ready")
 
     for line in sys.stdin:
         line = line.strip()
@@ -430,4 +459,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        # Last-resort handler: log to file AND stderr so the Rust reader picks it up
+        logger.critical(f"Sidecar crashed: {e}", exc_info=True)
+        print(f"FATAL: {e}", file=sys.stderr)
+        sys.exit(1)
+

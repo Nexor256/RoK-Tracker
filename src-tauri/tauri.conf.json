@@ -15,7 +15,9 @@
         "width": 1150,
         "height": 760,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "x": 750,
+        "y": 50
       }
     ],
     "security": {
@@ -26,12 +28,8 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
-    "icon": [
-      "icons/icon.ico"
-    ],
-    "externalBin": [
-      "binaries/scanner_sidecar"
-    ],
+    "icon": ["icons/icon.ico"],
+    "externalBin": ["binaries/scanner_sidecar"],
     "resources": {
       "../config.json": "config.json",
       "../deps/inputs": "deps/inputs"

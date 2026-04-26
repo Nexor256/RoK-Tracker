@@ -29,21 +29,21 @@ class PandasHandler:
             {
                 "ID": GovernorData.intify_value(gov_data.id),
                 "Name": gov_data.name,
+                "Alliance": gov_data.alliance.rstrip(),
                 "Power": GovernorData.intify_value(gov_data.power),
-                "Killpoints": GovernorData.intify_value(gov_data.killpoints),
-                "Deads": GovernorData.intify_value(gov_data.dead),
                 "T1 Kills": GovernorData.intify_value(gov_data.t1_kills),
                 "T2 Kills": GovernorData.intify_value(gov_data.t2_kills),
                 "T3 Kills": GovernorData.intify_value(gov_data.t3_kills),
                 "T4 Kills": GovernorData.intify_value(gov_data.t4_kills),
                 "T5 Kills": GovernorData.intify_value(gov_data.t5_kills),
-                "Total Kills": GovernorData.intify_value(gov_data.total_kills),
                 "T45 Kills": GovernorData.intify_value(gov_data.t45_kills),
+                "Total Kills": GovernorData.intify_value(gov_data.total_kills),
+                "Killpoints": GovernorData.intify_value(gov_data.killpoints),
+                "Deads": GovernorData.intify_value(gov_data.dead),
                 "Ranged": GovernorData.intify_value(gov_data.ranged_points),
                 "Rss Gathered": GovernorData.intify_value(gov_data.rss_gathered),
                 "Rss Assistance": GovernorData.intify_value(gov_data.rss_assistance),
                 "Helps": GovernorData.intify_value(gov_data.helps),
-                "Alliance": gov_data.alliance.rstrip(),
                 "City Hall Level": gov_data.city_hall_level,
             }
         )
@@ -64,13 +64,28 @@ class PandasHandler:
         else:
             return False
 
+    @staticmethod
+    def _int_columns():
+        """Column names that should always be written as integers, never scientific notation."""
+        return [
+            "ID", "Power", "Killpoints", "Deads",
+            "T1 Kills", "T2 Kills", "T3 Kills", "T4 Kills", "T5 Kills",
+            "Total Kills", "T45 Kills", "Ranged",
+            "Rss Gathered", "Rss Assistance", "Helps",
+        ]
+
     def save(self):
         frame = pd.DataFrame(self.data_list)
         # Drop cols that contain skipped values
         frame = frame.loc[:, ~(frame == -2).any()]
-        # Drop CH level column if all values are 0 (not used)
-        if "City Hall Level" in frame.columns and (frame["City Hall Level"] == 0).all():
+        # Drop CH level column if all values are 'Skipped' (not used)
+        if "City Hall Level" in frame.columns and (frame["City Hall Level"] == "Skipped").all():
             frame = frame.drop(columns=["City Hall Level"])
+
+        # Cast numeric columns to int64 to prevent float/scientific notation
+        for col in self._int_columns():
+            if col in frame.columns:
+                frame[col] = pd.to_numeric(frame[col], errors="coerce").astype("Int64")
 
         if self.formats.csv:
             frame.to_csv(self.path / (self.name + ".csv"), index=False)
@@ -85,7 +100,28 @@ class PandasHandler:
             )
 
         if self.formats.xlsx:
-            frame.to_excel(
-                self.path / (self.name + ".xlsx"), index=False, sheet_name=self.title
-            )
+            with pd.ExcelWriter(
+                self.path / (self.name + ".xlsx"), engine="openpyxl"
+            ) as writer:
+                frame.to_excel(writer, index=False, sheet_name=self.title)
+                ws = writer.sheets[self.title]
+                
+                # Apply column auto-sizing and integer formats
+                for col_idx, col_name in enumerate(frame.columns, start=1):
+                    # Find maximum length of data in this column for auto-sizing
+                    max_len = len(str(col_name))
+                    for row_idx in range(2, len(frame) + 2):
+                        cell = ws.cell(row=row_idx, column=col_idx)
+                        if cell.value is not None:
+                            max_len = max(max_len, len(str(cell.value)))
+                    
+                    # Set column width with some padding
+                    col_letter = ws.cell(row=1, column=col_idx).column_letter
+                    ws.column_dimensions[col_letter].width = max_len + 2
+                    
+                    # Apply explicit integer format to numeric columns so Excel
+                    if col_name in self._int_columns():
+                        for row_idx in range(2, len(frame) + 2):  # skip header
+                            cell = ws.cell(row=row_idx, column=col_idx)
+                            cell.number_format = "0"
 

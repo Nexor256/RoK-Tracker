@@ -56,7 +56,7 @@
           label="Default People to Scan" 
         />
         
-        <div class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/10 p-4 border mt-2">
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/10 backdrop-blur-md p-4 border border-border/50 mt-2 shadow-sm">
           <Switch
             :checked="configStore.config.scan.advanced_scroll"
             @update:checked="configStore.config.scan.advanced_scroll = $event"
@@ -80,7 +80,7 @@
           />
         </div>
 
-        <div class="flex flex-col gap-3 p-3 border rounded-md bg-muted/5 mt-2">
+        <div class="flex flex-col gap-3 p-3 border border-border/50 rounded-md bg-muted/10 backdrop-blur-md mt-2 shadow-sm">
            <Switch
              :checked="configStore.config.scan.validate_power"
              @update:checked="configStore.config.scan.validate_power = $event"
@@ -108,20 +108,12 @@
           @update:checked="configStore.config.scan.check_cityhall = $event"
           label="Enable CH Verification"
         />
-        <div class="grid grid-cols-2 gap-4">
-          <Input
-            v-model.number="configStore.config.scan.ch_auto_assign_power"
-            type="number"
-            label="Auto-Assign Power Threshold"
-            :disabled="!configStore.config.scan.check_cityhall"
-          />
-          <Input
-            v-model.number="configStore.config.scan.min_ch_level"
-            type="number"
-            label="Minimum CH Level"
-            :disabled="!configStore.config.scan.check_cityhall"
-          />
-        </div>
+        <Input
+          v-model.number="configStore.config.scan.ch_auto_assign_power"
+          type="number"
+          label="Auto-Assign Power Threshold"
+          :disabled="!configStore.config.scan.check_cityhall"
+        />
       </CardContent>
     </Card>
 

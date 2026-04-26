@@ -1,11 +1,13 @@
 import datetime
 import logging
+import re
 from roktracker.kingdom.pandas_handler import PandasHandler
 from roktracker.utils.output_formats import OutputFormats
 import roktracker.utils.rok_ui_positions as rok_ui
 import shutil
 import time
-import tkinter
+import ctypes
+from ctypes import wintypes
 import numpy as np
 
 from dummy_root import get_app_root
@@ -24,6 +26,154 @@ from roktracker.utils.types.full_config import FormatsConfig, FullConfig
 from roktracker.utils.types.scan_preset import ScanItems, ScanOptions, ScanPreset
 
 logger = logging.getLogger(__name__)
+
+def get_clipboard_text_ctypes() -> str:
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+    
+    user32.OpenClipboard.argtypes = [wintypes.HWND]
+    user32.OpenClipboard.restype = wintypes.BOOL
+    
+    user32.GetClipboardData.argtypes = [wintypes.UINT]
+    user32.GetClipboardData.restype = wintypes.HANDLE
+    
+    user32.CloseClipboard.argtypes = []
+    user32.CloseClipboard.restype = wintypes.BOOL
+    
+    kernel32.GlobalLock.argtypes = [wintypes.HANDLE]
+    kernel32.GlobalLock.restype = wintypes.c_void_p
+    
+    kernel32.GlobalUnlock.argtypes = [wintypes.HANDLE]
+    kernel32.GlobalUnlock.restype = wintypes.BOOL
+    
+    CF_UNICODETEXT = 13
+    
+    if not user32.OpenClipboard(None):
+        raise RuntimeError("Failed to open clipboard")
+    
+    try:
+        handle = user32.GetClipboardData(CF_UNICODETEXT)
+        if not handle:
+            raise RuntimeError("No clipboard data")
+        
+        ptr = kernel32.GlobalLock(handle)
+        if not ptr:
+            raise RuntimeError("Failed to lock clipboard data")
+        
+        try:
+            val = ctypes.c_wchar_p(ptr).value
+            if not val:
+                raise RuntimeError("Clipboard is empty")
+            return val
+        finally:
+            kernel32.GlobalUnlock(handle)
+    finally:
+        user32.CloseClipboard()
+
+
+def parse_clipboard_parcel(raw: str) -> str:
+    """Extract clipboard text from Android 'service call clipboard' parcel output.
+
+    The parcel contains multiple UTF-16LE strings (MIME types like 'text/plain',
+    labels, and the actual clipboard text).  We decode ALL strings from the hex
+    data and return the **last** one that isn't a MIME-type or metadata string,
+    since the actual clipboard text is always the final string in the parcel.
+    """
+    if not raw or "Parcel" not in raw:
+        return ""
+
+    # Extract all 8-char hex words from the parcel dump
+    hex_words = re.findall(r"\b([0-9a-fA-F]{8})\b", raw)
+    if len(hex_words) < 5:
+        return ""
+
+    # Convert hex display to memory-order bytes (LE: reverse each 4-byte word)
+    all_bytes = b""
+    for w in hex_words:
+        b = bytes.fromhex(w)
+        all_bytes += bytes([b[3], b[2], b[1], b[0]])
+
+    # Scan for all embedded UTF-16LE strings (length-prefixed int32 + data)
+    strings_found = []
+    offset = 0
+    while offset <= len(all_bytes) - 4:
+        str_len = int.from_bytes(all_bytes[offset : offset + 4], "little")
+        if 1 <= str_len <= 500:
+            data_start = offset + 4
+            data_end = data_start + str_len * 2
+            if data_end <= len(all_bytes):
+                try:
+                    text = all_bytes[data_start:data_end].decode("utf-16-le")
+                    printable = sum(1 for c in text if c.isprintable())
+                    if printable >= max(1, len(text) // 2):
+                        strings_found.append(text)
+                        # Advance past this string (align to 4-byte boundary)
+                        aligned_end = data_end + (4 - data_end % 4) % 4
+                        offset = max(offset + 4, aligned_end)
+                        continue
+                except Exception:
+                    pass
+        offset += 4
+
+    if not strings_found:
+        return ""
+
+    # Filter out MIME types and known metadata, return the last real string
+    skip_prefixes = ("text/", "application/", "android.", "com.android")
+    for text in reversed(strings_found):
+        stripped = text.strip()
+        if not stripped:
+            continue
+        lower = stripped.lower()
+        if any(lower.startswith(p) for p in skip_prefixes):
+            continue
+        # Skip strings that look like MIME types (e.g. "image/png")
+        if "/" in lower and len(lower) < 40 and " " not in lower:
+            continue
+        return stripped
+
+    # All strings were metadata — return the last one as a last resort
+    return strings_found[-1].strip()
+
+
+def clean_clipboard_name(raw_name: str) -> str:
+    """Strip Android ClipData metadata that some emulators sync to the host clipboard.
+
+    BlueStacks (and similar emulators) sometimes sync the raw ClipData parcel
+    to the Windows clipboard instead of just the plain-text payload.  This
+    produces names like:
+        mass_copytext/plainA?Lc99H1
+        mass_copytext/plain\x00\x00ActualName
+
+    The real governor name starts after the MIME-type and a few junk bytes.
+    """
+    if not raw_name:
+        return ""
+
+    # Pattern: "mass_copy" + "text/plain" + 1-4 junk chars + real name
+    # Also handle with or without null bytes
+    pattern = re.compile(
+        r"^.*?text/plain.{0,6}?(?=[A-Za-z0-9\u0600-\u06FF\u0400-\u04FF"
+        r"\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af])",
+        re.DOTALL,
+    )
+    cleaned = pattern.sub("", raw_name)
+
+    # If regex didn't strip anything useful, try simpler approach
+    if cleaned == raw_name and "text/plain" in raw_name:
+        # Find "text/plain" and take everything after it + a few junk bytes
+        idx = raw_name.index("text/plain") + len("text/plain")
+        remainder = raw_name[idx:]
+        # Skip leading non-alphanumeric junk (null bytes, control chars)
+        remainder = remainder.lstrip("\x00\x01\x02\x03\x04\x05\x06\x07"
+                                      "\x08\t\n\x0b\x0c\r\x0e\x0f?")
+        if remainder:
+            cleaned = remainder
+
+    # Final cleanup: remove null bytes and control characters
+    cleaned = re.sub(r"[\x00-\x08\x0e-\x1f]", "", cleaned)
+
+    return cleaned.strip() if cleaned.strip() else raw_name.strip()
 
 
 def default_gov_callback(gov: GovernorData, extra: AdditionalData) -> None:
@@ -69,6 +219,7 @@ class KingdomScanner:
         self.scan_times = []
         self.start_date = datetime.date.today()
         self.stop_scan = False
+        self.scan_start_time = time.time()
 
         self.config = config
         self.timings = config.scan.timings.model_dump()
@@ -118,9 +269,6 @@ class KingdomScanner:
             path=str(self.tesseract_path), psm=PSM.SINGLE_WORD, oem=OEM.LSTM_ONLY
         )
 
-        # Persistent Tk root for clipboard access
-        self._tk_root = tkinter.Tk()
-        self._tk_root.withdraw()
 
     def set_governor_callback(
         self, cb: Callable[[GovernorData, AdditionalData], None]
@@ -135,6 +283,66 @@ class KingdomScanner:
 
     def set_output_handler(self, cb: Callable[[str], None]):
         self.output_handler = cb
+
+    def _read_clipboard_via_adb(self) -> str:
+        """Read clipboard text directly from the Android emulator via ADB.
+
+        Tries multiple ADB methods in order of reliability.
+        This bypasses the emulator's (often broken) clipboard sync to Windows.
+        """
+        # Method 1: service call clipboard (Android 5+)
+        try:
+            raw = self.adb_client.secure_adb_shell(
+                "service call clipboard 2 s16 com.android.shell"
+            )
+            # logger.info(f"ADB clipboard raw: {raw[:300]!r}")
+            parsed = parse_clipboard_parcel(raw)
+            if parsed:
+                logger.info(f"ADB clipboard parsed name: {parsed!r}")
+                return parsed
+            else:
+                logger.info("ADB clipboard parse returned empty")
+        except Exception as e:
+            logger.debug(f"ADB clipboard service call failed: {e}")
+
+        return ""
+
+    def _copy_governor_name(self, tap_positions: dict) -> str:
+        """Copy governor name via tap and read from clipboard.
+
+        Retries the full tap → read cycle up to 3 times.
+        For each attempt:
+          1. Tap the name-copy button in the game
+          2. Try reading the Android clipboard via ADB (most reliable)
+          3. Fall back to reading the Windows clipboard
+        """
+        for attempt in range(3):
+            # Tap the name-copy button
+            self.adb_client.secure_adb_tap(tap_positions["name_copy"])
+            wait_random_range(
+                self.timings["copy_wait"], self.max_random_delay
+            )
+
+            # --- Strategy 1: read directly from Android via ADB ---
+            name = self._read_clipboard_via_adb()
+            if name:
+                return name
+
+            # --- Strategy 2: poll the Windows clipboard (emulator sync) ---
+            for _ in range(15):  # ~1.5 s
+                try:
+                    name = get_clipboard_text_ctypes()
+                    if name:
+                        return name
+                except Exception:
+                    pass
+                time.sleep(0.1)
+
+            logger.info(f"Name copy attempt {attempt + 1}/3 failed, retrying")
+
+        # All attempts exhausted
+        logger.warning("Name copy failed after 3 attempts")
+        return ""
 
     def get_remaining_time(self, remaining_govs: int) -> float:
         return (sum(self.scan_times, start=0) / len(self.scan_times)) * remaining_govs
@@ -351,23 +559,16 @@ class KingdomScanner:
             image = pil_to_cv2(gov_info_pil)
 
             if self.scan_options.name:
-                # nickname copy
-                copy_try = 0
-                while copy_try < 3:
-                    try:
-                        self.adb_client.secure_adb_tap(
-                            tap_positions["name_copy"]
-                        )
-                        wait_random_range(
-                            self.timings["copy_wait"], self.max_random_delay
-                        )
-                        self._tk_root.update()
-                        governor_data.name = self._tk_root.clipboard_get()
-                        break
-                    except:
-                        console.log("Name copy failed, retying")
-                        logging.log(logging.INFO, "Name copy failed, retying")
-                        copy_try = copy_try + 1
+                # nickname copy — uses ADB clipboard read + Windows fallback
+                copied_name = self._copy_governor_name(tap_positions)
+                if copied_name:
+                    governor_data.name = copied_name
+                else:
+                    console.log("Name copy failed after all attempts")
+                    logging.log(
+                        logging.WARNING,
+                        "Name copy failed after all attempts",
+                    )
 
             # 1st image data (ID, Power, Killpoints, Alliance)
             api = self._tess_api
@@ -545,24 +746,49 @@ class KingdomScanner:
     # City Hall verification methods
     # ------------------------------------------------------------------
 
+    def _entry_to_gov_data(self, entry: dict) -> GovernorData:
+        def de_intify(val):
+            if val == -1: return "Unknown"
+            if val == -2: return "Skipped"
+            return val
+
+        return GovernorData(
+            id=de_intify(entry.get("ID", "Skipped")),
+            name=entry.get("Name", "Skipped"),
+            power=de_intify(entry.get("Power", "Skipped")),
+            killpoints=de_intify(entry.get("Killpoints", "Skipped")),
+            dead=de_intify(entry.get("Deads", "Skipped")),
+            t1_kills=de_intify(entry.get("T1 Kills", "Skipped")),
+            t2_kills=de_intify(entry.get("T2 Kills", "Skipped")),
+            t3_kills=de_intify(entry.get("T3 Kills", "Skipped")),
+            t4_kills=de_intify(entry.get("T4 Kills", "Skipped")),
+            t5_kills=de_intify(entry.get("T5 Kills", "Skipped")),
+            ranged_points=de_intify(entry.get("Ranged", "Skipped")),
+            rss_gathered=de_intify(entry.get("Rss Gathered", "Skipped")),
+            rss_assistance=de_intify(entry.get("Rss Assistance", "Skipped")),
+            helps=de_intify(entry.get("Helps", "Skipped")),
+            alliance=entry.get("Alliance", "Skipped"),
+            city_hall_level=entry.get("City Hall Level", "Not Checked")
+        )
+
     def get_governors_needing_ch(
         self, data_list: list, min_power: int = 25_000_000
     ) -> List[GovernorData]:
         """Identify governors that need in-game CH verification.
 
         - Governors with power >= min_power are auto-assigned CH 25.
-        - Returns governors with 0 < power < min_power and city_hall_level == 0.
+        - Returns governors with 0 < power < min_power and city_hall_level == "Not Checked".
         """
         needing_check = []
         for entry in data_list:
             gov_power = entry.get("Power", 0)
             gov_id = entry.get("ID", 0)
-            current_ch = entry.get("City Hall Level", 0)
+            current_ch = entry.get("City Hall Level", "Not Checked")
 
             if gov_power <= 0 or gov_id <= 0:
                 continue
 
-            if current_ch > 0:
+            if current_ch != "Not Checked":
                 # Already set (e.g., from a resumed scan)
                 continue
 
@@ -570,8 +796,8 @@ class KingdomScanner:
                 # Auto-assign CH 25 for high-power governors
                 entry["City Hall Level"] = 25
             else:
-                # Create a minimal GovernorData for the check
-                gov = GovernorData(id=gov_id, power=gov_power)
+                # Reconstruct full GovernorData so frontend card shows all info
+                gov = self._entry_to_gov_data(entry)
                 needing_check.append(gov)
 
         return needing_check
@@ -627,9 +853,7 @@ class KingdomScanner:
         self.adb_client.secure_adb_shell(f"input text {governor_id}")
         time.sleep(0.3)
 
-        # Double-tap search button
-        self.adb_client.secure_adb_tap(tap_positions["search_button"])
-        time.sleep(0.3)
+        # Tap search button
         self.adb_client.secure_adb_tap(tap_positions["search_button"])
 
         # Retry loop with exponential backoff
@@ -874,10 +1098,21 @@ class KingdomScanner:
                 else:
                     self.save_failed("power", gov_data)
 
+            if self.config.scan.check_cityhall:
+                gov_power = to_int_check(gov_data.power)
+                if gov_power != -1 and gov_power < self.config.scan.ch_auto_assign_power:
+                    gov_data.city_hall_level = "Not Checked"
+                elif gov_power != -1:
+                    gov_data.city_hall_level = 25
+
             # Write results (batch save every 10 governors for performance)
             data_handler.write_governor(gov_data)
             if (i + 1) % 10 == 0 or self.stop_scan:
                 data_handler.save()
+
+            avg_time = (sum(self.scan_times) / len(self.scan_times)) if self.scan_times else 0.0
+            speed_per_hour = (3600.0 / avg_time) if avg_time > 0 else 0.0
+            elapsed = time.time() - self.scan_start_time
 
             additional_info = AdditionalData(
                 current_governor=i + 1,
@@ -887,6 +1122,9 @@ class KingdomScanner:
                 kills_ok=str(kills_ok),
                 reconstruction_success=str(reconstruction_success),
                 remaining_sec=self.get_remaining_time(amount - i),
+                avg_time_per_governor=round(avg_time, 2),
+                scan_speed_per_hour=round(speed_per_hour, 1),
+                elapsed_sec=round(elapsed, 1),
             )
 
             self.gov_callback(gov_data, additional_info)
@@ -907,10 +1145,6 @@ class KingdomScanner:
         """Release persistent resources."""
         try:
             self._tess_api.End()
-        except Exception:
-            pass
-        try:
-            self._tk_root.destroy()
         except Exception:
             pass
 

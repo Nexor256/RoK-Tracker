@@ -25,7 +25,7 @@ class GovernorData(BaseModel):
     rss_assistance: int | str = "Skipped"
     rss_gathered: int | str = "Skipped"
     helps: int | str = "Skipped"
-    city_hall_level: int = 0
+    city_hall_level: int | str = "Skipped"
 
     @computed_field
     @property

@@ -84,10 +84,10 @@ watch(selectedOutputs, (newVal) => {
 
 const handleMainButtonClick = () => {
   if (!scanRunning.value) {
-    ipc.startBatchScan(configStore.config, JSON.stringify(batchType))
+    ipc.startBatchScan(configStore.config, batchType.type)
     scanRunning.value = !scanRunning.value
   } else {
-    ipc.stopBatchScan(JSON.stringify(batchType))
+    ipc.stopBatchScan(batchType.type)
     startButtonDisabled.value = true
   }
 }

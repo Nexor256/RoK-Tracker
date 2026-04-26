@@ -8,7 +8,7 @@
         </AlertDialogTitle>
         <AlertDialogDescription class="space-y-4">
           <!-- Suggestion Box -->
-          <div class="rounded-md bg-muted p-3 text-sm text-foreground">
+          <div class="rounded-md bg-muted/20 backdrop-blur-md border border-border/50 p-3 text-sm text-foreground shadow-sm">
             <p class="font-medium mb-1">Suggestion</p>
             <p>{{ errorStore.errorSuggestion }}</p>
           </div>
@@ -16,7 +16,7 @@
           <!-- Raw Error Code -->
           <div>
             <p class="text-xs font-medium text-muted-foreground mb-1">Raw Error</p>
-            <div class="rounded-md bg-destructive/10 p-3">
+            <div class="rounded-md bg-destructive/10 backdrop-blur-md border border-destructive/20 p-3 shadow-sm">
               <pre class="whitespace-pre-wrap break-words text-xs text-destructive">{{ errorStore.errorMessage }}</pre>
             </div>
           </div>

@@ -15,5 +15,9 @@ export const KingdomAdditionalDataSchema = z.object({
     .string()
     .datetime({ offset: true })
     .default("2025-01-27T22:09:30.591099+01:00"),
+  avg_time_per_governor: z.number().default(0),
+  scan_speed_per_hour: z.number().default(0),
+  elapsed_sec: z.number().default(0),
 });
 export type KingdomAdditionalData = z.infer<typeof KingdomAdditionalDataSchema>;
+

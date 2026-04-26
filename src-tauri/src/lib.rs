@@ -2,7 +2,7 @@ mod commands;
 mod sidecar;
 
 use sidecar::SidecarManager;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -28,8 +28,16 @@ pub fn run() {
             // Spawn the Python sidecar on app startup
             let sidecar = app.state::<SidecarManager>();
             let handle = app.handle().clone();
-            if let Err(e) = sidecar.spawn(handle) {
-                eprintln!("WARNING: Failed to spawn Python sidecar: {}", e);
+            if let Err(e) = sidecar.spawn(handle.clone()) {
+                eprintln!("CRITICAL: Failed to spawn Python sidecar: {}", e);
+                // Emit error to frontend so the user sees it
+                let _ = handle.emit(
+                    "sidecar:error",
+                    serde_json::Value::String(format!(
+                        "Failed to start scanner backend: {}. The app will not function correctly.",
+                        e
+                    )),
+                );
             }
             Ok(())
         })

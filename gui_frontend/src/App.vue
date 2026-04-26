@@ -1,51 +1,58 @@
 <template>
-  <div class="flex h-screen flex-col">
-    <!-- Header -->
-    <header class="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-primary px-6 text-primary-foreground">
-      <div class="flex items-center gap-2">
-        <Radar class="h-6 w-6" />
-        <span class="text-lg font-semibold">RoK Tracker Suite</span>
-      </div>
-      <div class="flex-1" />
-      <button
-        class="theme-toggle rounded-full p-2 hover:bg-white/10 transition-colors"
-        :class="{ 'theme-toggle--toggled': darkMode }"
-        @click="() => toggleDarkMode()"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-          width="1.5em"
-          height="1.5em"
-          fill="currentColor"
-          stroke-linecap="round"
-          class="theme-toggle__classic"
-          viewBox="0 0 32 32"
-        >
-          <clipPath id="theme-toggle__classic__cutout">
-            <path d="M0-5h30a1 1 0 0 0 9 13v24H0Z" />
-          </clipPath>
-          <g clip-path="url(#theme-toggle__classic__cutout)">
-            <circle cx="16" cy="16" r="9.34" />
-            <g stroke="currentColor" stroke-width="1.5">
-              <path d="M16 5.5v-4" />
-              <path d="M16 30.5v-4" />
-              <path d="M1.5 16h4" />
-              <path d="M26.5 16h4" />
-              <path d="m23.4 8.6 2.8-2.8" />
-              <path d="m5.7 26.3 2.9-2.9" />
-              <path d="m5.8 5.8 2.8 2.8" />
-              <path d="m23.4 23.4 2.9 2.9" />
-            </g>
-          </g>
-        </svg>
-      </button>
-    </header>
+  <div class="relative flex h-screen flex-col bg-background">
+    <!-- Ambient background glow for depth -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div class="absolute -top-[20%] -left-[10%] h-[60%] w-[60%] rounded-full bg-primary/10 blur-[120px] transition-all duration-1000 ease-in-out" />
+      <div class="absolute top-[40%] -right-[10%] h-[60%] w-[60%] rounded-full bg-blue-600/10 blur-[120px] transition-all duration-1000 ease-in-out" />
+    </div>
 
-    <!-- Main content with sidebar -->
-    <div class="flex flex-1 overflow-hidden">
-      <!-- Sidebar Navigation -->
-      <nav class="flex w-[120px] flex-col items-center gap-1 border-r bg-muted/40 p-2 overflow-y-auto scrollbar-hidden">
+    <div class="z-10 flex flex-1 flex-col overflow-hidden">
+      <!-- Header -->
+      <header class="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-primary/90 backdrop-blur-md px-6 text-primary-foreground shadow-sm">
+        <div class="flex items-center gap-2">
+          <Radar class="h-6 w-6" />
+          <span class="text-lg font-semibold">RoK Tracker Suite</span>
+        </div>
+        <div class="flex-1" />
+        <button
+          class="theme-toggle rounded-full p-2 hover:bg-white/10 transition-colors"
+          :class="{ 'theme-toggle--toggled': darkMode }"
+          @click="() => toggleDarkMode()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            width="1.5em"
+            height="1.5em"
+            fill="currentColor"
+            stroke-linecap="round"
+            class="theme-toggle__classic"
+            viewBox="0 0 32 32"
+          >
+            <clipPath id="theme-toggle__classic__cutout">
+              <path d="M0-5h30a1 1 0 0 0 9 13v24H0Z" />
+            </clipPath>
+            <g clip-path="url(#theme-toggle__classic__cutout)">
+              <circle cx="16" cy="16" r="9.34" />
+              <g stroke="currentColor" stroke-width="1.5">
+                <path d="M16 5.5v-4" />
+                <path d="M16 30.5v-4" />
+                <path d="M1.5 16h4" />
+                <path d="M26.5 16h4" />
+                <path d="m23.4 8.6 2.8-2.8" />
+                <path d="m5.7 26.3 2.9-2.9" />
+                <path d="m5.8 5.8 2.8 2.8" />
+                <path d="m23.4 23.4 2.9 2.9" />
+              </g>
+            </g>
+          </svg>
+        </button>
+      </header>
+
+      <!-- Main content with sidebar -->
+      <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <nav class="flex w-[120px] flex-col items-center gap-1 border-r bg-muted/20 backdrop-blur-md p-2 overflow-y-auto scrollbar-hidden">
         <router-link
           v-for="item in navItems"
           :key="item.to"
@@ -96,6 +103,7 @@
     <!-- Notifiers -->
     <UpdateNotifier />
     <ErrorNotifier />
+    </div>
   </div>
 </template>
 
@@ -266,7 +274,7 @@ async function init() {
     confirmDialogResolve = (confirmed: boolean) => {
       const typeVal = d.type as string
       const parsed = BatchTypeSchema.safeParse(typeof typeVal === 'string' ? JSON.parse(typeVal) : typeVal)
-      if (parsed.success) ipc.confirmBatchScan(confirmed, JSON.stringify(parsed.data))
+      if (parsed.success) ipc.confirmBatchScan(confirmed, parsed.data.type)
     }
   }))
 
@@ -290,6 +298,32 @@ async function init() {
     const { title, suggestion } = analyzeError(errorString)
     errorStore.showError(title, errorString, suggestion)
   }))
+
+  // Surface Python stderr output in the console for debugging
+  unlisteners.push(await onSidecarEvent('stderr', (data) => {
+    console.warn('[sidecar stderr]', data)
+  }))
+
+  // Wait for the sidecar "ready" signal before sending any commands.
+  // The Python sidecar emits {"event":"ready"} once its main loop starts.
+  try {
+    await new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        // If we time out, try loading anyway — sidecar may already be ready
+        console.warn('[init] Sidecar ready timeout — proceeding anyway')
+        resolve()
+      }, 3000)
+
+      onSidecarEvent('ready', () => {
+        clearTimeout(timeout)
+        resolve()
+      }).then((unsub) => {
+        unlisteners.push(unsub)
+      })
+    })
+  } catch {
+    // proceed anyway
+  }
 
   // Load config and presets via sidecar
   await ipc.loadFullConfig()

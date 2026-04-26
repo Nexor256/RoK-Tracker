@@ -47,7 +47,6 @@ class ScanConfig(BaseModel):
     validate_kills: bool = True
     reconstruct_kills: bool = True
     check_cityhall: bool = False
-    min_ch_level: int = 25
     ch_auto_assign_power: int = 25_000_000
     timings: TimingsConfig
     formats: FormatsConfig

@@ -146,7 +146,7 @@
         />
 
         <!-- Toggles grid -->
-        <div class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/10 p-3 border">
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/10 backdrop-blur-md p-3 border border-border/50 shadow-sm">
           <Switch
             :checked="configStore.config.scan.resume"
             @update:checked="configStore.config.scan.resume = $event"
@@ -197,6 +197,25 @@
               :disabled="scanRunning || !configStore.config.scan.validate_power"
             />
           </div>
+        </div>
+
+        <!-- City Hall Verification -->
+        <div class="flex flex-col gap-3 p-3 border border-border/50 rounded-md bg-muted/10 backdrop-blur-md mt-1 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">City Hall Verification</span>
+            <Switch
+              :checked="configStore.config.scan.check_cityhall"
+              @update:checked="configStore.config.scan.check_cityhall = $event"
+              :disabled="scanRunning"
+            />
+          </div>
+          <Input
+            v-model="configStore.config.scan.ch_auto_assign_power"
+            type="number"
+            label="Auto-Assign Power Threshold"
+            hint="CH level auto-assigned above this power"
+            :disabled="scanRunning || !configStore.config.scan.check_cityhall"
+          />
         </div>
 
         <!-- Delays Row -->
@@ -491,7 +510,12 @@ const toggleLeaf = (label: SelectionValue, checked: boolean) => {
 // ---- Scan control ----
 const handleMainButtonClick = () => {
   if (!scanRunning.value) {
-    ipc.startKingdomScan(configStore.config, selectedPreset.value)
+    // Use the selected preset, or build one from current checkbox selections
+    const preset = selectedPreset.value ?? {
+      name: 'Custom',
+      selections: [...configStore.selectedKingdomOptions.selections],
+    }
+    ipc.startKingdomScan(configStore.config, preset)
     scanRunning.value = true
   } else {
     ipc.stopKingdomScan()
