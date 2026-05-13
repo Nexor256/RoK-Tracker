@@ -743,14 +743,12 @@ deps/shapeclustering.exe
 deps/tesseract-uninstall.exe
 deps/tesseract.1.html
 deps/tesseract.exe
-deps/doc/AUTHORS
+deps/doc
 deps/wordlist2dawg.exe
 deps/zlib1.dll
 deps/unicharset.5.html
 deps/unicharset_extractor.exe
-deps/doc/README.md
 deps/wordlist2dawg.1.html
-deps/doc/LICENSE
 deps/winpath.exe
 deps/unicharset_extractor.1.html
 deps/unicharambigs.5.html

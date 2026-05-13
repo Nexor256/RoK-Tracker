@@ -87,8 +87,11 @@ export const useConfigStore = defineStore('configStore', () => {
     { name: 'Seed', selections: ['ID', 'Name', 'Power', 'Killpoints', 'Alliance'] },
   ])
 
+  const configLoaded = ref(false)
+
   return {
     config,
+    configLoaded,
     availableScanPresets,
     selectedKingdomOptions,
   }

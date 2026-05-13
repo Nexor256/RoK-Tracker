@@ -66,7 +66,25 @@
       </nav>
 
       <!-- Content area -->
-      <main class="flex-1 overflow-auto scrollbar-hidden p-4">
+      <main class="flex-1 overflow-auto scrollbar-hidden p-4 relative">
+        <!-- Loading overlay while sidecar initializes -->
+        <transition
+          enter-active-class="transition-opacity duration-300"
+          leave-active-class="transition-opacity duration-500"
+          enter-from-class="opacity-0"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="!configStore.configLoaded"
+            class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background/80 backdrop-blur-sm"
+          >
+            <svg class="h-10 w-10 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span class="text-sm text-muted-foreground">Initializing scanner backend…</span>
+          </div>
+        </transition>
         <router-view v-slot="{ Component, route }">
           <transition
             :enter-active-class="`${(route.meta.transitionIn as string) ?? 'slide-up'}-enter-active`"
@@ -133,7 +151,7 @@ import UpdateNotifier from '@/components/UpdateNotifier.vue'
 import ErrorNotifier from '@/components/ErrorNotifier.vue'
 import { Radar, ScanLine, Calculator, Settings } from 'lucide-vue-next'
 import { onSidecarEvent } from '@/lib/tauriClient'
-import * as ipc from '@/lib/ipcClient'
+import * as ipc from '@/lib/tauriClient'
 import { useErrorStore } from '@/stores/error-store'
 import { analyzeError } from '@/util/error-mapper'
 
@@ -152,22 +170,37 @@ const navItems = [
   { to: '/settings', label: 'Settings', icon: markRaw(Settings) },
 ]
 
-// Confirm dialog state
+// Confirm dialog state — queue-based to prevent race conditions
 const confirmDialogOpen = ref(false)
 const confirmDialogMessage = ref('')
-let confirmDialogResolve: ((value: boolean) => void) | null = null
 
-const showConfirmDialog = (message: string): void => {
-  confirmDialogMessage.value = message
+interface ConfirmRequest {
+  message: string
+  resolve: (value: boolean) => void
+}
+
+const confirmQueue: ConfirmRequest[] = []
+
+function processConfirmQueue() {
+  if (confirmDialogOpen.value || confirmQueue.length === 0) return
+  const next = confirmQueue[0]
+  confirmDialogMessage.value = next.message
   confirmDialogOpen.value = true
+}
+
+const showConfirmDialog = (message: string, resolve: (value: boolean) => void): void => {
+  confirmQueue.push({ message, resolve })
+  processConfirmQueue()
 }
 
 const handleConfirmDialogResponse = (confirmed: boolean) => {
   confirmDialogOpen.value = false
-  if (confirmDialogResolve) {
-    confirmDialogResolve(confirmed)
-    confirmDialogResolve = null
+  const current = confirmQueue.shift()
+  if (current) {
+    current.resolve(confirmed)
   }
+  // Show next queued dialog, if any
+  processConfirmQueue()
 }
 
 // ---- Batch helpers ----
@@ -185,20 +218,20 @@ const handleBatchScanId = (id: string, batchType: string) => {
 const handleBatchUpdate = (governorData: unknown, extraData: unknown, batchType: string) => {
   const parsed = BatchTypeSchema.safeParse(typeof batchType === 'string' ? JSON.parse(batchType) : batchType)
   if (parsed.success) {
-    const govStr = typeof governorData === 'string' ? governorData : JSON.stringify(governorData)
-    const extraStr = typeof extraData === 'string' ? extraData : JSON.stringify(extraData)
+    const govParsed = BatchGovernorDataListSchema.parse(governorData)
+    const extraParsed = BatchAdditionalDataSchema.parse(extraData)
     switch (parsed.data.type) {
       case 'Alliance':
-        allianceStore.lastGovernor = BatchGovernorDataListSchema.parse(JSON.parse(govStr))
-        allianceStore.status = BatchAdditionalDataSchema.parse(JSON.parse(extraStr))
+        allianceStore.lastGovernor = govParsed
+        allianceStore.status = extraParsed
         break
       case 'Honor':
-        honorStore.lastGovernor = BatchGovernorDataListSchema.parse(JSON.parse(govStr))
-        honorStore.status = BatchAdditionalDataSchema.parse(JSON.parse(extraStr))
+        honorStore.lastGovernor = govParsed
+        honorStore.status = extraParsed
         break
       case 'Seed':
-        seedStore.lastGovernor = BatchGovernorDataListSchema.parse(JSON.parse(govStr))
-        seedStore.status = BatchAdditionalDataSchema.parse(JSON.parse(extraStr))
+        seedStore.lastGovernor = govParsed
+        seedStore.status = extraParsed
         break
     }
   }
@@ -243,6 +276,7 @@ async function init() {
     const parsed = FullConfigSchema.safeParse(data)
     if (parsed.success) {
       configStore.config = parsed.data
+      configStore.configLoaded = true
     } else {
       console.warn('Failed to parse loaded config:', parsed.error)
     }
@@ -254,28 +288,23 @@ async function init() {
   }))
 
   unlisteners.push(await onSidecarEvent('batch_scan_id', (data) => {
-    const d = data as Record<string, unknown>
-    handleBatchScanId(d.id as string, d.type as string)
+    handleBatchScanId(data.id, data.type)
   }))
 
   unlisteners.push(await onSidecarEvent('batch_update', (data) => {
-    const d = data as Record<string, unknown>
-    handleBatchUpdate(d.gov, d.extra, d.type as string)
+    handleBatchUpdate(data.gov, data.extra, data.type)
   }))
 
   unlisteners.push(await onSidecarEvent('batch_state_update', (data) => {
-    const d = data as Record<string, unknown>
-    handleBatchStateUpdate(d.msg as string, d.type as string)
+    handleBatchStateUpdate(data.msg, data.type)
   }))
 
   unlisteners.push(await onSidecarEvent('batch_ask_confirm', (data) => {
-    const d = data as Record<string, unknown>
-    showConfirmDialog(d.msg as string)
-    confirmDialogResolve = (confirmed: boolean) => {
-      const typeVal = d.type as string
-      const parsed = BatchTypeSchema.safeParse(typeof typeVal === 'string' ? JSON.parse(typeVal) : typeVal)
+    const typeVal = data.type
+    const parsed = BatchTypeSchema.safeParse(typeof typeVal === 'string' ? JSON.parse(typeVal) : typeVal)
+    showConfirmDialog(data.msg, (confirmed: boolean) => {
       if (parsed.success) ipc.confirmBatchScan(confirmed, parsed.data.type)
-    }
+    })
   }))
 
   unlisteners.push(await onSidecarEvent('batch_scan_finished', (data) => {

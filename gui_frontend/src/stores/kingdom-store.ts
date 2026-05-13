@@ -22,7 +22,7 @@ export const useKingdomStore = defineStore('kingdom', () => {
     t5_kp: 20000000, // 20x t5 kills
     t45_kills: 2000000, // t4 + t5 kills
     total_kills: 5000000, // sum of all kills
-    ranged_points: 1000000,
+    ranged_points: 0,
     dead: 1000000,
     rss_assistance: 1000000,
     rss_gathered: 1000000,
@@ -51,11 +51,16 @@ export const useKingdomStore = defineStore('kingdom', () => {
 
   const statusMessage = ref('Not yet started')
 
+  const scanRunning = ref(false)
+  const startButtonDisabled = ref(false)
+
   return {
     lastGovernor,
     status,
     statusMessage,
     scanID,
+    scanRunning,
+    startButtonDisabled,
   }
 })
 

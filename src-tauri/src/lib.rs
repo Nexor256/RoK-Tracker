@@ -14,15 +14,14 @@ pub fn run() {
             #[cfg(desktop)]
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
-            // Create deps folders next to the exe so the user just needs to add files
+            // Create deps/inputs folder next to the exe (bundled via Tauri resources)
             let exe_dir = std::env::current_exe()
                 .ok()
                 .and_then(|p| p.parent().map(|d| d.to_path_buf()));
 
             if let Some(dir) = exe_dir {
-                let _ = std::fs::create_dir_all(dir.join("deps").join("platform-tools"));
-                let _ = std::fs::create_dir_all(dir.join("deps").join("tessdata"));
                 let _ = std::fs::create_dir_all(dir.join("deps").join("inputs"));
+                let _ = std::fs::create_dir_all(dir.join("deps").join("ch_templates"));
             }
 
             // Spawn the Python sidecar on app startup

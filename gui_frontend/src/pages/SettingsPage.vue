@@ -1,5 +1,6 @@
 <template>
-  <div class="h-full flex flex-col gap-4 overflow-y-auto pr-2 pb-4">
+  <div class="h-full overflow-y-auto pr-2 pb-4">
+    <div class="mx-auto max-w-3xl flex flex-col gap-4">
     <!-- General Settings -->
     <Card>
       <CardHeader class="pb-3">
@@ -185,6 +186,7 @@
         <template v-else>Save Settings</template>
       </Button>
     </div>
+    </div>
   </div>
 </template>
 
@@ -197,7 +199,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toast'
-import * as ipc from '@/lib/ipcClient'
+import * as ipc from '@/lib/tauriClient'
 
 const configStore = useConfigStore()
 const saving = ref(false)

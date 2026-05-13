@@ -1,11 +1,9 @@
 <template>
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 min-h-0">
     <!-- Left Column: Controls (Presets & Tree) -->
-    <div class="flex flex-col gap-3 lg:col-span-2 min-h-0 overflow-y-auto">
-      <!-- Preset + tree + actions -->
-
-      <!-- Scan Preset Select -->
-      <div class="space-y-1">
+    <Card class="flex flex-col gap-4 p-4 lg:col-span-2 min-h-0 overflow-y-auto">
+      <!-- Scan Preset -->
+      <div class="space-y-1.5">
         <label class="text-sm font-medium">Scan Preset</label>
         <div class="flex items-center gap-2">
           <Select v-model="selectedPresetName" :disabled="scanRunning">
@@ -34,9 +32,11 @@
         </div>
       </div>
 
+      <Separator />
+
       <!-- Info Tree (checkboxes) -->
-      <div class="space-y-1 mb-2">
-        <div v-for="group in infoToScan" :key="group.label" class="space-y-1">
+      <div class="flex-1 overflow-y-auto">
+        <div v-for="group in infoToScan" :key="group.label" class="space-y-1.5">
           <div class="flex items-center gap-2">
             <Checkbox
               :checked="isGroupChecked(group)"
@@ -45,8 +45,8 @@
             />
             <span class="text-sm font-medium">{{ group.label }}</span>
           </div>
-          <div v-if="group.children" class="ml-4 space-y-1">
-            <div v-for="subGroup in group.children" :key="subGroup.label" class="space-y-0.5">
+          <div v-if="group.children" class="ml-4 space-y-1.5">
+            <div v-for="subGroup in group.children" :key="subGroup.label" class="space-y-1">
               <div class="flex items-center gap-2">
                 <Checkbox
                   :checked="isGroupChecked(subGroup)"
@@ -55,7 +55,7 @@
                 />
                 <span class="text-xs font-medium text-muted-foreground">{{ subGroup.label }}</span>
               </div>
-              <div v-if="subGroup.children" class="ml-4 space-y-0.5">
+              <div v-if="subGroup.children" class="ml-4 space-y-1">
                 <div
                   v-for="leaf in subGroup.children"
                   :key="leaf.label"
@@ -78,18 +78,22 @@
         </div>
       </div>
 
-      <Button variant="secondary" @click="handleSavePreset" :disabled="scanRunning">
-        Save as Preset
-      </Button>
+      <!-- Action buttons -->
+      <div class="mt-auto flex flex-col gap-2">
+        <Button variant="secondary" size="sm" @click="handleSavePreset" :disabled="scanRunning">
+          Save as Preset
+        </Button>
 
-      <Button
-        :variant="startBtnVariant"
-        @click="handleMainButtonClick"
-        :disabled="startButtonDisabled"
-      >
-        {{ startButtonDisabled ? 'Stopping...' : scanRunning ? 'Stop Scan' : 'Start Scan' }}
-      </Button>
-    </div>
+        <Button
+          size="sm"
+          :variant="startBtnVariant"
+          @click="handleMainButtonClick"
+          :disabled="startButtonDisabled"
+        >
+          {{ startButtonDisabled ? 'Stopping...' : scanRunning ? 'Stop Scan' : 'Start Scan' }}
+        </Button>
+      </div>
+    </Card>
 
     <!-- Middle Column: Form Settings -->
     <div class="flex flex-col gap-6 lg:col-span-6 min-h-0 overflow-y-auto pr-1">
@@ -146,7 +150,9 @@
         />
 
         <!-- Toggles grid -->
-        <div class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/10 backdrop-blur-md p-3 border border-border/50 shadow-sm">
+        <div
+          class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/10 backdrop-blur-md p-3 border border-border/50 shadow-sm"
+        >
           <Switch
             :checked="configStore.config.scan.resume"
             @update:checked="configStore.config.scan.resume = $event"
@@ -200,7 +206,10 @@
         </div>
 
         <!-- City Hall Verification -->
-        <div class="flex flex-col gap-3 p-3 border border-border/50 rounded-md bg-muted/10 backdrop-blur-md mt-1 shadow-sm">
+        <div
+          class="p-3 border border-border/50 rounded-md bg-muted/10 backdrop-blur-md mt-1 shadow-sm transition-all duration-200"
+          :class="{ 'opacity-60': !configStore.config.scan.check_cityhall }"
+        >
           <div class="flex items-center justify-between">
             <span class="text-sm font-medium">City Hall Verification</span>
             <Switch
@@ -209,13 +218,24 @@
               :disabled="scanRunning"
             />
           </div>
-          <Input
-            v-model="configStore.config.scan.ch_auto_assign_power"
-            type="number"
-            label="Auto-Assign Power Threshold"
-            hint="CH level auto-assigned above this power"
-            :disabled="scanRunning || !configStore.config.scan.check_cityhall"
-          />
+          <transition
+            enter-active-class="transition-all duration-200 ease-out"
+            leave-active-class="transition-all duration-150 ease-in"
+            enter-from-class="opacity-0 max-h-0"
+            enter-to-class="opacity-100 max-h-24"
+            leave-from-class="opacity-100 max-h-24"
+            leave-to-class="opacity-0 max-h-0"
+          >
+            <div v-if="configStore.config.scan.check_cityhall" class="mt-3 overflow-hidden">
+              <Input
+                v-model="configStore.config.scan.ch_auto_assign_power"
+                type="number"
+                label="Auto-Assign Power Threshold"
+                hint="CH level auto-assigned above this power"
+                :disabled="scanRunning"
+              />
+            </div>
+          </transition>
         </div>
 
         <!-- Delays Row -->
@@ -247,7 +267,11 @@
       <div class="flex-1 flex flex-col gap-4 min-h-0">
         <!-- We use flex-1 on this div so the inner components can stretch or scroll if necessary. -->
         <LastGovernor class="flex-1" />
-        <ScanStatus :scan-id="kingdomStore.scanID" :status-message="kingdomStore.statusMessage" />
+        <ScanStatus
+          class="mt-auto"
+          :scan-id="kingdomStore.scanID"
+          :status-message="kingdomStore.statusMessage"
+        />
       </div>
     </div>
 
@@ -304,10 +328,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { Card } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
@@ -335,14 +362,12 @@ import { KingdomAdditionalDataSchema } from '@/schema/KingdomAdditionalData'
 import type { ScanPreset } from '@/schema/ScanPreset'
 import type { OutputFormat } from '@/types/OutputFormats'
 
-import * as ipc from '@/lib/ipcClient'
+import * as ipc from '@/lib/tauriClient'
 import { onSidecarEvent } from '@/lib/tauriClient'
 
 const kingdomStore = useKingdomStore()
 const configStore = useConfigStore()
-
-const scanRunning = ref(false)
-const startButtonDisabled = ref(false)
+const { scanRunning, startButtonDisabled } = storeToRefs(kingdomStore)
 
 const startBtnVariant = computed(() => {
   if (startButtonDisabled.value) return 'secondary'
@@ -405,7 +430,12 @@ const outputFormats: OutputFormat[] = [
   { label: 'JSON Lines (jsonl)', value: 'jsonl', display: 'jsonl' },
 ]
 
-const selectedOutputs = ref<OutputFormat[]>([{ label: 'Excel', value: 'xlsx', display: 'xlsx' }])
+const selectedOutputs = ref<OutputFormat[]>(
+  outputFormats.filter((fmt) => {
+    const formats = configStore.config.scan.formats
+    return formats[fmt.value as keyof typeof formats]
+  }),
+)
 
 const isFormatSelected = (fmt: OutputFormat): boolean => {
   return selectedOutputs.value.some((s) => s.value === fmt.value)
@@ -515,6 +545,8 @@ const handleMainButtonClick = () => {
       name: 'Custom',
       selections: [...configStore.selectedKingdomOptions.selections],
     }
+    // Auto-save config so scanner-page tweaks aren't lost on crash
+    ipc.saveConfig(configStore.config).catch(() => {})
     ipc.startKingdomScan(configStore.config, preset)
     scanRunning.value = true
   } else {
@@ -535,11 +567,24 @@ const setScanId = (id: string) => {
   kingdomStore.scanID = id
 }
 
-const governorUpdate = (governorData: string | unknown, extraData: string | unknown) => {
-  const govStr = typeof governorData === 'string' ? governorData : JSON.stringify(governorData)
-  const extraStr = typeof extraData === 'string' ? extraData : JSON.stringify(extraData)
-  kingdomStore.lastGovernor = KingdomGovernorDataSchema.parse(JSON.parse(govStr))
-  kingdomStore.status = KingdomAdditionalDataSchema.parse(JSON.parse(extraStr))
+// Throttle governor updates to one per animation frame to prevent UI jitter during fast scans
+let pendingGovUpdate: { gov: unknown; extra: unknown } | null = null
+let govRafId: number | null = null
+
+const flushGovUpdate = () => {
+  govRafId = null
+  if (!pendingGovUpdate) return
+  const { gov, extra } = pendingGovUpdate
+  pendingGovUpdate = null
+  kingdomStore.lastGovernor = KingdomGovernorDataSchema.parse(gov)
+  kingdomStore.status = KingdomAdditionalDataSchema.parse(extra)
+}
+
+const governorUpdate = (governorData: unknown, extraData: unknown) => {
+  pendingGovUpdate = { gov: governorData, extra: extraData }
+  if (govRafId === null) {
+    govRafId = requestAnimationFrame(flushGovUpdate)
+  }
 }
 
 const stateUpdate = (state: string) => {
@@ -561,23 +606,22 @@ const unlisteners: Array<() => void> = []
 onMounted(async () => {
   unlisteners.push(
     await onSidecarEvent('kingdom_scan_id', (data) => {
-      setScanId(data as string)
+      setScanId(data)
     }),
   )
   unlisteners.push(
     await onSidecarEvent('kingdom_governor_update', (data) => {
-      const d = data as Record<string, unknown>
-      governorUpdate(d.gov, d.extra)
+      governorUpdate(data.gov, data.extra)
     }),
   )
   unlisteners.push(
     await onSidecarEvent('kingdom_state_update', (data) => {
-      stateUpdate(data as string)
+      stateUpdate(data)
     }),
   )
   unlisteners.push(
     await onSidecarEvent('kingdom_ask_confirm', (data) => {
-      askConfirm(data as string)
+      askConfirm(data)
     }),
   )
   unlisteners.push(
@@ -589,5 +633,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   unlisteners.forEach((fn) => fn())
+  if (govRafId !== null) cancelAnimationFrame(govRafId)
 })
 </script>

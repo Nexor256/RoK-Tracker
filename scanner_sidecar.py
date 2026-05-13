@@ -3,6 +3,7 @@ RokTracker Sidecar Process
 Reads JSON commands from stdin, writes JSON events to stdout.
 Used by Tauri to communicate with the Python scanner logic.
 """
+import datetime
 import json
 import logging
 import sys
@@ -59,6 +60,15 @@ threading.excepthook = ex_handler.handle_thread_exception
 _write_lock = threading.Lock()
 
 
+class _DateTimeEncoder(json.JSONEncoder):
+    """JSON encoder that converts datetime objects to ISO 8601 strings."""
+
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
+            return obj.isoformat()
+        return super().default(obj)
+
+
 def emit_event(event: str, data=None):
     """Write a single JSON line to stdout."""
     msg = {"event": event}
@@ -66,7 +76,7 @@ def emit_event(event: str, data=None):
         msg["data"] = data
     with _write_lock:
         try:
-            sys.stdout.write(json.dumps(msg) + "\n")
+            sys.stdout.write(json.dumps(msg, cls=_DateTimeEncoder) + "\n")
             sys.stdout.flush()
         except OSError as e:
             # Handle broken pipes
@@ -105,8 +115,8 @@ class SidecarCallbackHandler:
         emit_event(
             "kingdom_governor_update",
             {
-                "gov": json.loads(gov_data.model_dump_json()),
-                "extra": json.loads(extra_data.model_dump_json()),
+                "gov": gov_data.model_dump(),
+                "extra": extra_data.model_dump(),
             },
         )
 
@@ -132,14 +142,11 @@ class SidecarCallbackHandler:
         extra_data: BatchAdditionalData,
         batch_type: BatchType,
     ):
-        batch_data_encoded = (
-            TypeAdapter(list[BatchData]).dump_json(batch_data).decode()
-        )
         emit_event(
             "batch_update",
             {
-                "gov": json.loads(batch_data_encoded),
-                "extra": json.loads(extra_data.model_dump_json()),
+                "gov": TypeAdapter(list[BatchData]).dump_python(batch_data, mode="python"),
+                "extra": extra_data.model_dump(),
                 "type": BatchStatus(type=batch_type).model_dump_json(),
             },
         )
@@ -320,14 +327,13 @@ def command(name):
 @command("LoadFullConfig")
 def cmd_load_config(args):
     config = load_config()
-    emit_event("config_loaded", json.loads(config.model_dump_json()))
+    emit_event("config_loaded", config.model_dump())
 
 
 @command("LoadScanPresets")
 def cmd_load_presets(args):
     presets = load_kingdom_presets()
-    data = TypeAdapter(list[ScanPreset]).dump_json(presets).decode()
-    emit_event("presets_loaded", json.loads(data))
+    emit_event("presets_loaded", TypeAdapter(list[ScanPreset]).dump_python(presets, mode="python"))
 
 
 @command("SaveConfig")

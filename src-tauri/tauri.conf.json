@@ -16,12 +16,12 @@
         "height": 760,
         "resizable": true,
         "fullscreen": false,
-        "x": 750,
-        "y": 50
+        "x": 350,
+        "y": 20
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:"
     }
   },
   "bundle": {
@@ -32,7 +32,8 @@
     "externalBin": ["binaries/scanner_sidecar"],
     "resources": {
       "../config.json": "config.json",
-      "../deps/inputs": "deps/inputs"
+      "../deps/inputs": "deps/inputs",
+      "../deps/ch_templates": "deps/ch_templates"
     }
   },
   "plugins": {
