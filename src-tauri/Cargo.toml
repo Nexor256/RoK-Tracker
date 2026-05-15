@@ -2,7 +2,7 @@
 name = "rok-tracker-suite"
 version = "1.0.0"
 description = "RoK Tracker Suite"
-authors = ["AbdUlrahman097"]
+authors = ["Nexor255"]
 edition = "2021"
 
 [lib]

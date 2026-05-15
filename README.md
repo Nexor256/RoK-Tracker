@@ -112,7 +112,7 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
 
 No Python, Node.js, or Rust required — just install and run.
 
-1. **Download** the latest release: **[Latest Release](https://github.com/AbdUlrahman097/RoK-Tracker/releases/latest)**
+1. **Download** the latest release: **[Latest Release](https://github.com/Nexor255/RoK-Tracker/releases/latest)**
    - Choose either `RoK-Tracker-Suite_1.0.0_x64-setup.exe` (NSIS) or `.msi` (Windows Installer)
 2. **Run the installer** — follow the setup wizard
 3. **Launch the app once** — it will auto-create the `deps/` folder structure
@@ -154,7 +154,7 @@ For developers who want to run or modify the code.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/AbdUlrahman097/RoK-Tracker.git
+git clone https://github.com/Nexor255/RoK-Tracker.git
 cd RokTracker
 
 # 2. Install Python dependencies
@@ -341,9 +341,9 @@ The installer will be created at:
 | Sidecar won't start                | Check `sidecar.log` in the app directory for errors                             |
 | Emulator not detected              | Verify ADB is in `deps/platform-tools/` and emulator has ADB enabled            |
 
-**Wiki:** Check the [Wiki](https://github.com/AbdUlrahman097/RoK-Tracker/wiki/) for detailed guides.
+**Wiki:** Check the [Wiki](https://github.com/Nexor255/RoK-Tracker/wiki/) for detailed guides.
 
-**GitHub Discussions:** Post questions in [GitHub Discussions](https://github.com/AbdUlrahman097/RoK-Tracker/discussions).
+**GitHub Discussions:** Post questions in [GitHub Discussions](https://github.com/Nexor255/RoK-Tracker/discussions).
 
 **Discord:** `cyrexxis` — available on the official RoK Server and the Chisgule server.
 

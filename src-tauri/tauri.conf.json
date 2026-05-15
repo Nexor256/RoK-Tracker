@@ -40,7 +40,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ1MzhFNTYwREMzNzUxQUYKUldTdlVUZmNZT1U0UllWMTljZkJDZnVOWUh1bkhHbkVKUnE4VTBuT3VZTE9aTys4N0ZVS2pncVgK",
       "endpoints": [
-        "https://github.com/AbdUlrahman097/RoK-Tracker/releases/latest/download/latest.json"
+        "https://github.com/Nexor255/RoK-Tracker/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
