@@ -1,4 +1,7 @@
 {
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
   "python.defaultInterpreterPath": ".venv/Scripts/python.exe",
   "python.analysis.typeCheckingMode": "basic",
   "[python]": {

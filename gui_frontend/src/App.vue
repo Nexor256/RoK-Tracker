@@ -1,27 +1,35 @@
 <template>
-  <div class="relative flex h-screen flex-col bg-background">
-    <!-- Ambient background glow for depth -->
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+  <div class="app-shell relative flex h-screen flex-col bg-background">
+    <!-- Ambient background: dot grid + soft color orbs -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div class="app-dot-grid absolute inset-0" />
       <div
-        class="absolute -top-[20%] -left-[10%] h-[60%] w-[60%] rounded-full bg-primary/15 dark:bg-primary/10 blur-[120px] transition-all duration-1000 ease-in-out"
+        class="ambient-orb absolute -top-[20%] -left-[10%] h-[60%] w-[60%] rounded-full bg-primary/18 dark:bg-primary/12 blur-[120px]"
       />
       <div
-        class="absolute top-[40%] -right-[10%] h-[60%] w-[60%] rounded-full bg-chart-2/20 dark:bg-chart-2/10 blur-[120px] transition-all duration-1000 ease-in-out"
+        class="ambient-orb ambient-orb--delay absolute top-[40%] -right-[10%] h-[55%] w-[55%] rounded-full bg-chart-2/22 dark:bg-chart-2/12 blur-[120px]"
+      />
+      <div
+        class="ambient-orb ambient-orb--delay-2 absolute bottom-[-15%] left-[30%] h-[45%] w-[45%] rounded-full bg-chart-4/15 dark:bg-chart-4/8 blur-[100px]"
       />
     </div>
 
     <div class="z-10 flex flex-1 flex-col overflow-hidden">
       <!-- Header -->
       <header
-        class="app-header sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-primary/90 backdrop-blur-md px-6 text-primary-foreground shadow-sm"
+        class="app-header sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-primary-foreground/10 px-6 text-primary-foreground"
       >
-        <div class="flex items-center gap-2">
-          <Radar class="h-6 w-6" />
-          <span class="text-lg font-semibold">RoK Tracker Suite</span>
+        <div class="flex items-center gap-2.5">
+          <div
+            class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-foreground/15 ring-1 ring-primary-foreground/20"
+          >
+            <Radar class="h-4 w-4" />
+          </div>
+          <span class="text-lg font-semibold tracking-tight">RoK Tracker Suite</span>
         </div>
         <div class="flex-1" />
         <button
-          class="theme-toggle rounded-full p-2 hover:bg-white/10 transition-colors"
+          class="theme-toggle rounded-full p-2 ring-1 ring-primary-foreground/15 transition-colors hover:bg-primary-foreground/15 hover:ring-primary-foreground/25"
           :class="{ 'theme-toggle--toggled': darkMode }"
           @click="() => toggleDarkMode()"
         >
@@ -59,7 +67,7 @@
       <div class="flex flex-1 overflow-hidden">
         <!-- Sidebar Navigation -->
         <nav
-          class="app-sidebar flex w-[120px] flex-col items-center gap-1 border-r bg-sidebar-background backdrop-blur-md p-2 overflow-y-auto scrollbar-hidden"
+          class="app-sidebar flex w-[128px] shrink-0 flex-col items-center gap-1 border-r bg-sidebar-background/80 p-2 overflow-y-auto scrollbar-hidden backdrop-blur-xl"
         >
           <template v-for="item in navItems" :key="item.to">
             <!-- Coming-soon items render as a disabled div -->
@@ -70,7 +78,7 @@
               <component :is="item.icon" class="h-5 w-5 opacity-60" />
               {{ item.label }}
               <span
-                class="absolute -top-1 -right-1 rounded-full bg-primary/80 px-1.5 py-[1px] text-[9px] font-semibold leading-tight text-primary-foreground shadow-sm"
+                class="absolute -top-1 -right-1 rounded-full bg-primary/80 px-1.5 py-px text-[9px] font-semibold leading-tight text-primary-foreground shadow-sm"
               >
                 Soon
               </span>
@@ -79,8 +87,8 @@
             <router-link
               v-else
               :to="item.to"
-              class="flex w-full flex-col items-center justify-center gap-1 rounded-md px-3 py-2.5 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-              active-class="bg-accent text-accent-foreground"
+              class="nav-link flex w-full flex-col items-center justify-center gap-1 rounded-lg px-3 py-2.5 text-xs font-medium text-sidebar-foreground transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              active-class="nav-link--active"
             >
               <component :is="item.icon" class="h-5 w-5" />
               {{ item.label }}
@@ -89,7 +97,7 @@
         </nav>
 
         <!-- Content area -->
-        <main class="flex-1 overflow-auto scrollbar-hidden p-4 relative">
+        <main class="relative flex-1 overflow-auto p-5 scrollbar-hidden">
           <!-- Loading overlay while sidecar initializes -->
           <transition
             enter-active-class="transition-opacity duration-300"
@@ -99,7 +107,7 @@
           >
             <div
               v-if="!configStore.configLoaded"
-              class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background/80 backdrop-blur-sm"
+              class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background/75 backdrop-blur-md"
             >
               <svg
                 class="h-10 w-10 animate-spin text-primary"
@@ -216,9 +224,14 @@ onErrorCaptured((err, instance, info) => {
   return false // don't propagate, let the component handle it
 })
 
-const navItems: Array<{ to: string; label: string; icon: ReturnType<typeof markRaw>; comingSoon?: boolean }> = [
+const navItems: Array<{
+  to: string
+  label: string
+  icon: ReturnType<typeof markRaw>
+  comingSoon?: boolean
+}> = [
   { to: '/scanner', label: 'Scanners', icon: markRaw(ScanLine) },
-  { to: '/calculator', label: 'Calculators', icon: markRaw(Calculator), comingSoon: false },
+  { to: '/calculator', label: 'Calculators', icon: markRaw(Calculator), comingSoon: true },
   { to: '/history', label: 'History', icon: markRaw(History), comingSoon: false },
   { to: '/settings', label: 'Settings', icon: markRaw(Settings) },
 ]

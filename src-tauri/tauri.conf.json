@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "identifier": "com.roktracker.suite",
   "build": {
-    "beforeDevCommand": "cd gui_frontend && pnpm run dev",
+    "beforeDevCommand": "cd gui_frontend && npm run dev",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "cd gui_frontend && pnpm run build",
+    "beforeBuildCommand": "cd gui_frontend && npm run build",
     "frontendDist": "../gui_frontend/dist/spa"
   },
   "app": {

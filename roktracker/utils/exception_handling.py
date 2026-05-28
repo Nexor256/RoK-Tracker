@@ -2,7 +2,6 @@ import sys
 import logging
 from com.dtmilano.android.adb.adbclient import Timer
 from roktracker.utils.console import console
-from roktracker.utils.gui import ConfirmDialog, InfoDialog
 from threading import ExceptHookArgs
 
 
@@ -48,6 +47,8 @@ class GuiExceptionHandler:
         self.logger.critical(
             "Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback)
         )
+        from roktracker.utils.gui import InfoDialog
+
         InfoDialog(
             "Error",
             "An error occured, see the log file for more info.\nYou probably have to restart this application.",

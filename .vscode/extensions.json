@@ -4,6 +4,7 @@
     "esbenp.prettier-vscode",
     "editorconfig.editorconfig",
     "vue.volar",
+    "bradlc.vscode-tailwindcss",
     "wayou.vscode-todo-highlight"
   ],
   "unwantedRecommendations": [

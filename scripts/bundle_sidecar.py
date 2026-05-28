@@ -66,6 +66,10 @@ def main():
         f"--output-filename=scanner_sidecar{ext}",
         "--remove-output",
         "--follow-imports",
+        # tesserocr's Cython extension imports cysignals at the C level,
+        # which Nuitka cannot trace statically — include it explicitly.
+        "--include-package=tesserocr.cysignals",
+        "--include-package-data=tesserocr",
         SIDECAR_SCRIPT,
     ]
 
