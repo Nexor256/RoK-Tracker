@@ -67,6 +67,10 @@ def main():
         "--remove-output",
         "--follow-imports",
         "--include-package-data=tesserocr",
+        # Attach to parent's console handles so piped stdin/stdout
+        # from Tauri (Rust) are inherited correctly.  Without this,
+        # Nuitka's onefile launcher + CREATE_NO_WINDOW breaks the pipe.
+        *(["--windows-console-mode=attach"] if platform.system() == "Windows" else []),
         SIDECAR_SCRIPT,
     ]
 
