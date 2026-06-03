@@ -122,7 +122,10 @@ No Python, Node.js, or Rust required — just install and run.
 5. **Configure your emulator** ([see Emulator Setup](#emulator-setup))
 6. **Relaunch** the app — you're ready to scan!
 
-> 💡 **Future updates are automatic!** The app will notify you when a new version is available and can update itself with one click — no need to revisit this page.
+> 💡 **Future updates are automatic!** The app will notify you when a new version is available and can update itself with one click — no need redownload the app again.
+
+> [!WARNING]
+> **Windows Defender False Positive:** The installer bundles a custom Python executable (`scanner_sidecar.exe`) that handles the scanning engine. Because it is heavily compressed and compiled into a single file with Nuitka, **Windows Defender and other antiviruses often falsely flag it as malware** and may silently quarantine it upon installation. If the app gets stuck on the "Initializing Sidecar" loading screen, please check your **Windows Security -> Protection History**, click on the blocked threat, select **Restore / Allow on device**, and restart the app.
 
 **Folder structure after first launch:**
 
@@ -334,12 +337,13 @@ The installer will be created at:
 
 **Common Issues:**
 
-| Problem                            | Solution                                                                        |
-| ---------------------------------- | ------------------------------------------------------------------------------- |
-| App shows "Config file is missing" | Ensure `config.json` is next to the app exe                                     |
-| "deps not found" or scanner fails  | Create `deps/` folder with ADB and OCR data (see [Installation](#installation)) |
-| Sidecar won't start                | Check `sidecar.log` in the app directory for errors                             |
-| Emulator not detected              | Verify ADB is in `deps/platform-tools/` and emulator has ADB enabled            |
+| Problem                             | Solution                                                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| App shows "Config file is missing"  | Ensure `config.json` is next to the app exe                                                                  |
+| "deps not found" or scanner fails   | Create `deps/` folder with ADB and OCR data (see [Installation](#installation))                              |
+| App stuck on "Initializing Sidecar" | Windows Defender likely deleted `scanner_sidecar.exe`. Restore it from Windows Security > Protection History |
+| Sidecar won't start                 | Check `sidecar.log` in the app directory for errors                                                          |
+| Emulator not detected               | Verify ADB is in `deps/platform-tools/` and emulator has ADB enabled                                         |
 
 **Wiki:** Check the [Wiki](https://github.com/Nexor256/RoK-Tracker/wiki/) for detailed guides.
 
