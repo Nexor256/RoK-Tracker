@@ -165,7 +165,7 @@ jobs:
             "platforms": {
               "windows-x86_64": {
                 "signature": "${NSIS_SIG}",
-                "url": "https://github.com/AbdUlrahman097/RoK-Tracker/releases/download/${TAG}/${NSIS_FILENAME}"
+                "url": "https://github.com/Nexor256/RoK-Tracker/releases/download/${TAG}/${NSIS_FILENAME}"
               }
             }
           }
