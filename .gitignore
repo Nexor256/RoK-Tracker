@@ -600,6 +600,10 @@ FodyWeavers.xsd
 .thumbs.db
 node_modules
 
+# Un-ignore frontend lib (caught by Python's lib/ and venv's [Ll]ib rules)
+!gui_frontend/src/lib/
+!gui_frontend/src/lib/**
+
 # Tauri
 src-tauri/target/
 src-tauri/gen/schemas/
