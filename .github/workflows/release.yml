@@ -97,17 +97,6 @@ jobs:
           name: nsis-sig
           path: src-tauri/target/release/bundle/nsis/*.sig
 
-      - name: Upload MSI installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: msi-installer
-          path: src-tauri/target/release/bundle/msi/*.msi
-
-      - name: Upload MSI signature
-        uses: actions/upload-artifact@v4
-        with:
-          name: msi-sig
-          path: src-tauri/target/release/bundle/msi/*.sig
 
   # ── Create GitHub Release with latest.json ──────────────────
   release:
@@ -127,17 +116,6 @@ jobs:
           name: nsis-sig
           path: installers/
 
-      - name: Download MSI installer
-        uses: actions/download-artifact@v4
-        with:
-          name: msi-installer
-          path: installers/
-
-      - name: Download MSI signature
-        uses: actions/download-artifact@v4
-        with:
-          name: msi-sig
-          path: installers/
 
       - name: Generate latest.json for updater
         shell: bash

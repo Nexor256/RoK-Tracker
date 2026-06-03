@@ -113,7 +113,7 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
 No Python, Node.js, or Rust required — just install and run.
 
 1. **Download** the latest release: **[Latest Release](https://github.com/Nexor256/RoK-Tracker/releases/latest)**
-   - Choose either `RoK-Tracker-Suite_1.0.0_x64-setup.exe` (NSIS) or `.msi` (Windows Installer)
+   - Choose `RoK-Tracker-Suite_1.0.0_x64-setup.exe` (NSIS)
 2. **Run the installer** — follow the setup wizard
 3. **Launch the app once** — it will auto-create the `deps/` folder structure
 4. **Add dependencies** to the `deps/` folder (located next to the installed app):
