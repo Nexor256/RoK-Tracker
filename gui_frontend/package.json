@@ -14,7 +14,8 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "generate:zod": "tsx node_scripts/generateZod.ts",
-    "generate:json-schema": "..\\venv\\Scripts\\python ..\\schema_generator.py"
+    "generate:json-schema": "uv run --directory .. schema_generator.py",
+    "generate:all": "pnpm run generate:json-schema && pnpm run generate:zod"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",
