@@ -60,6 +60,9 @@ jobs:
 
       # ── Build Tauri installer ─────────────────────────────────
       - name: Build Tauri app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: ./gui_frontend/node_modules/.bin/tauri build
 
       - name: Summarize build
