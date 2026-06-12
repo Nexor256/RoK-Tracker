@@ -1,7 +1,7 @@
 {
     "scan": {
         "kingdom_name": "test",
-        "people_to_scan": 10,
+        "people_to_scan": 300,
         "resume": false,
         "advanced_scroll": true,
         "track_inactives": false,
@@ -27,7 +27,7 @@
         }
     },
     "general": {
-        "emulator": "ld",
+        "emulator": "bluestacks",
         "bluestacks": {
             "name": "BlueStacks App Player",
             "config": "C:\\ProgramData\\BlueStacks_nxt\\bluestacks.conf"

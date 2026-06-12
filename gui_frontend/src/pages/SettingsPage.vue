@@ -77,12 +77,14 @@
                     </SelectContent>
                   </Select>
                 </div>
-                <Input 
-                  v-model="configStore.config.general.bluestacks.name" 
-                  label="BlueStacks Instance Name" 
-                />
+                <template v-if="configStore.config.general.emulator === 'bluestacks'">
+                  <Input 
+                    v-model="configStore.config.general.bluestacks.name" 
+                    label="BlueStacks Instance Name" 
+                  />
+                </template>
               </div>
-              <div class="grid gap-2 mb-2">
+              <div v-if="configStore.config.general.emulator === 'bluestacks'" class="grid gap-2 mb-2">
                  <label class="text-sm font-medium leading-none">BlueStacks Config Path</label>
                  <Input 
                    v-model="configStore.config.general.bluestacks.config" 
@@ -327,6 +329,11 @@ onMounted(async () => {
   unlistenEmulators = await ipc.onSidecarEvent('emulators_detected', (data) => {
     detectedEmulators.value = data
     isScanningEmulators.value = false
+    
+    // Auto-select if exactly one emulator is detected
+    if (data.length === 1) {
+      selectEmulator(data[0])
+    }
   })
   
   // Auto-scan on mount

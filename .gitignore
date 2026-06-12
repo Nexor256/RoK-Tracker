@@ -631,6 +631,7 @@ yarn-error.log*
 *.ntvs*
 *.njsproj
 *.sln
+.gemini/
 
 # local .env files
 .env.local*

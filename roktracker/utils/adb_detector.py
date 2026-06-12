@@ -32,6 +32,10 @@ def detect_emulators() -> List[Dict[str, Any]]:
         emulator_types = {
             "HD-Player.exe": {"id": "bluestacks", "name": "BlueStacks"},
             "dnplayer.exe": {"id": "ld", "name": "LDPlayer"},
+            "LDPlayer.exe": {"id": "ld", "name": "LDPlayer"},
+            "LdVBoxHeadless.exe": {"id": "ld", "name": "LDPlayer"},
+            "Ld9BoxHeadless.exe": {"id": "ld", "name": "LDPlayer 9"},
+            "Ld9BoxSVC.exe": {"id": "ld", "name": "LDPlayer 9"},
             "MEmuHeadless.exe": {"id": "memu", "name": "MEmu"},
             "MEmu.exe": {"id": "memu", "name": "MEmu"},
             "Nox.exe": {"id": "nox", "name": "Nox"},
@@ -44,11 +48,12 @@ def detect_emulators() -> List[Dict[str, Any]]:
         for line in netstat.strip().split("\n"):
             parts = line.split()
             # Look for lines like: TCP    127.0.0.1:5555    0.0.0.0:0   LISTENING   24244
+            # LDPlayer 9 may bind on 0.0.0.0 instead of 127.0.0.1
             if len(parts) >= 5 and parts[0] == "TCP" and parts[3] == "LISTENING":
                 local_addr = parts[1]
                 pid = parts[4]
                 
-                if local_addr.startswith("127.0.0.1:"):
+                if local_addr.startswith("127.0.0.1:") or local_addr.startswith("0.0.0.0:"):
                     try:
                         port = int(local_addr.split(":")[1])
                     except ValueError:
