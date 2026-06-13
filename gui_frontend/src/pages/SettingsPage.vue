@@ -72,7 +72,7 @@
                     <SelectContent>
                       <SelectItem value="bluestacks">BlueStacks</SelectItem>
                       <SelectItem value="nox">Nox</SelectItem>
-                      <SelectItem value="ld">LD Player 9</SelectItem>
+                      <SelectItem value="ld">LDPlayer</SelectItem>
                       <SelectItem value="memu">MEmu</SelectItem>
                     </SelectContent>
                   </Select>
