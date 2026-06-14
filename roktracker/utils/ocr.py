@@ -97,10 +97,17 @@ def preprocessImageRobust(
     return im_bw
 
 
-def ocr_number(api, image: MatLike):
-    api.SetImage(Image.fromarray(image))
-    score = api.GetUTF8Text()
-    score = re.sub("[^0-9]", "", score)
+def ocr_number(api: tesserocr.PyTessBaseAPI, image: MatLike, empty_retry: bool = False):
+    api.SetImage(Image.fromarray(image))  # type: ignore
+    score_raw = api.GetUTF8Text()
+    score = re.sub("[^0-9]", "", score_raw)
+
+    if score == "" and empty_retry:
+        img_try_2 = cv2.resize(image, (0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+        api.SetImage(Image.fromarray(img_try_2))  # type: ignore
+        score_raw = api.GetUTF8Text()
+        score = re.sub("[^0-9]", "", score_raw)
+
     if not score:
         return "Unknown"
     return score
@@ -127,7 +134,7 @@ def preprocess_and_ocr_number_robust(
     """Crop, preprocess with HSV masking, and OCR a number region."""
     cropped_image = cropToRegion(image, region)
     cropped_bw_image = preprocessImageRobust(cropped_image, 3, 150, 12, invert)
-    return ocr_number(api, cropped_bw_image)
+    return ocr_number(api, cropped_bw_image, empty_retry=True)
 
 
 def get_supported_langs(path: str) -> str:

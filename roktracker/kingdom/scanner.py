@@ -637,7 +637,7 @@ class KingdomScanner:
                 # Fallback to robust preprocessing for themed profiles
                 if governor_data.power == "Unknown":
                     im_gov_power_bw = preprocessImageRobust(im_gov_power, 3, 100, 12, True)
-                    governor_data.power = ocr_number(api, im_gov_power_bw)
+                    governor_data.power = ocr_number(api, im_gov_power_bw, empty_retry=True)
 
             if self.scan_options.killpoints:
                 im_gov_killpoints = cropToRegion(
@@ -652,21 +652,20 @@ class KingdomScanner:
                     im_gov_killpoints_bw = preprocessImageRobust(
                         im_gov_killpoints, 3, 100, 12, True
                     )
-                    governor_data.killpoints = ocr_number(api, im_gov_killpoints_bw)
+                    governor_data.killpoints = ocr_number(api, im_gov_killpoints_bw, empty_retry=True)
 
             api.SetPageSegMode(PSM.SINGLE_LINE)
             if self.scan_options.id:
                 im_gov_id = cropToRegion(image, ui_positions["gov_id"])
-                im_gov_id_gray = cv2.cvtColor(im_gov_id, cv2.COLOR_BGR2GRAY)
-                im_gov_id_gray = cv2.bitwise_not(im_gov_id_gray)
-                (thresh, im_gov_id_bw) = cv2.threshold(
-                    im_gov_id_gray, 120, 255, cv2.THRESH_BINARY
-                )
+                
+                # Standard thresholding (using the existing utility for cleaner code)
+                im_gov_id_bw = preprocessImage(im_gov_id, 3, 120, 12, True)
                 governor_data.id = ocr_number(api, im_gov_id_bw)
+                
                 # Fallback to robust preprocessing for themed profiles
                 if governor_data.id == "Unknown":
                     im_gov_id_bw = preprocessImageRobust(im_gov_id, 3, 120, 12, True)
-                    governor_data.id = ocr_number(api, im_gov_id_bw)
+                    governor_data.id = ocr_number(api, im_gov_id_bw, empty_retry=True)
 
             if self.scan_options.alliance:
                 im_alliance_tag = cropToRegion(
