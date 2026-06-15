@@ -245,6 +245,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'SettingsPage' })
 import { ref } from 'vue'
 import { useConfigStore } from '@/stores/config-store'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'

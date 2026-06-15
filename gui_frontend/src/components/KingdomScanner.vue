@@ -180,7 +180,7 @@
         <!-- Governors to scan full width -->
         <Input
           type="number"
-          v-model="configStore.config.scan.people_to_scan"
+          v-model.number="configStore.config.scan.people_to_scan"
           label="Governors to scan"
           hint="Amount of people to scan"
           :disabled="scanRunning"
@@ -234,7 +234,8 @@
           </div>
           <div class="w-2/3">
             <Input
-              v-model="configStore.config.scan.power_threshold"
+              type="number"
+              v-model.number="configStore.config.scan.power_threshold"
               label="Power tolerance"
               hint="Tolerance threshold"
               :disabled="scanRunning || !configStore.config.scan.validate_power"
@@ -265,7 +266,7 @@
           >
             <div v-if="configStore.config.scan.check_cityhall" class="mt-3 overflow-hidden">
               <Input
-                v-model="configStore.config.scan.ch_auto_assign_power"
+                v-model.number="configStore.config.scan.ch_auto_assign_power"
                 type="number"
                 label="Auto-Assign Power Threshold"
                 hint="CH level auto-assigned above this power"
@@ -278,19 +279,25 @@
         <!-- Delays Row -->
         <div class="grid grid-cols-3 gap-2 xl:gap-4">
           <Input
-            v-model="configStore.config.scan.timings.info_close"
+            type="number"
+            step="0.1"
+            v-model.number="configStore.config.scan.timings.info_close"
             label="Info delay (s)"
             hint="Wait after more info"
             :disabled="scanRunning"
           />
           <Input
-            v-model="configStore.config.scan.timings.gov_close"
+            type="number"
+            step="0.1"
+            v-model.number="configStore.config.scan.timings.gov_close"
             label="Gov delay (s)"
             hint="Wait after governor"
             :disabled="scanRunning"
           />
           <Input
-            v-model="configStore.config.scan.timings.max_random"
+            type="number"
+            step="0.1"
+            v-model.number="configStore.config.scan.timings.max_random"
             label="Random delay (s)"
             hint="Max added variance"
             :disabled="scanRunning"
@@ -393,10 +400,10 @@ import LastGovernor from './LastGovernor.vue'
 import ScanStatus from './ScanStatus.vue'
 import { useKingdomStore } from '@/stores/kingdom-store'
 import { useConfigStore } from '@/stores/config-store'
+import { toast } from '@/components/ui/toast'
 import { KingdomGovernorDataSchema } from '@/schema/KingdomGovernorData'
 import { KingdomAdditionalDataSchema } from '@/schema/KingdomAdditionalData'
 import type { ScanPreset } from '@/schema/ScanPreset'
-import type { OutputFormat } from '@/types/OutputFormats'
 
 import * as ipc from '@/lib/tauriClient'
 import { onSidecarEvent } from '@/lib/tauriClient'
@@ -459,41 +466,8 @@ const confirmDeletePreset = () => {
   deleteDialogOpen.value = false
 }
 
-// ---- Output formats ----
-const outputFormats: OutputFormat[] = [
-  { label: 'Excel (xlsx)', value: 'xlsx', display: 'xlsx' },
-  { label: 'Comma Separated Values (csv)', value: 'csv', display: 'csv' },
-  { label: 'JSON Lines (jsonl)', value: 'jsonl', display: 'jsonl' },
-]
-
-const selectedOutputs = ref<OutputFormat[]>(
-  outputFormats.filter((fmt) => {
-    const formats = configStore.config.scan.formats
-    return formats[fmt.value as keyof typeof formats]
-  }),
-)
-
-const isFormatSelected = (fmt: OutputFormat): boolean => {
-  return selectedOutputs.value.some((s) => s.value === fmt.value)
-}
-
-const toggleFormat = (fmt: OutputFormat) => {
-  if (isFormatSelected(fmt)) {
-    selectedOutputs.value = selectedOutputs.value.filter((s) => s.value !== fmt.value)
-  } else {
-    selectedOutputs.value.push(fmt)
-  }
-}
-
-watch(
-  selectedOutputs,
-  (newVal) => {
-    configStore.config.scan.formats.csv = newVal.some((f) => f.value === 'csv')
-    configStore.config.scan.formats.jsonl = newVal.some((f) => f.value === 'jsonl')
-    configStore.config.scan.formats.xlsx = newVal.some((f) => f.value === 'xlsx')
-  },
-  { deep: true },
-)
+import { useOutputFormats } from '@/composables/useOutputFormats'
+const { outputFormats, isFormatSelected, toggleFormat } = useOutputFormats()
 
 // ---- Tree (info to scan) ----
 interface TreeNode {
@@ -596,6 +570,14 @@ const collapseAll = () => {
 // ---- Scan control ----
 const handleMainButtonClick = () => {
   if (!scanRunning.value) {
+    if (configStore.config.scan.people_to_scan <= 0) {
+      toast({ title: 'Invalid Input', description: 'Governors to scan must be > 0', variant: 'destructive' })
+      return
+    }
+    if (configStore.selectedKingdomOptions.selections.length === 0) {
+      toast({ title: 'No Fields Selected', description: 'Select at least one field to scan', variant: 'destructive' })
+      return
+    }
     // Use the selected preset, or build one from current checkbox selections
     const preset = selectedPreset.value ?? {
       name: 'Custom',

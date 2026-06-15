@@ -327,6 +327,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'CalculatorPage' })
 import { ref, computed, reactive } from 'vue'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
