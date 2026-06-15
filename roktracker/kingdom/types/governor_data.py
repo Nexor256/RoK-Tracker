@@ -9,6 +9,8 @@ class GovernorData(BaseModel):
     name: str = "Skipped"
     power: int | str = "Skipped"
     killpoints: int | str = "Skipped"
+    acclaim: int | str = "Skipped"
+    acclaim_max: int | str = "Skipped"
     alliance: str = "Skipped"
     t1_kills: int | str = "Skipped"
     t1_kp: int | str = "Skipped"

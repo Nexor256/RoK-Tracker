@@ -8,6 +8,6 @@ export const BatchAdditionalDataSchema = z.object({
   current_time: z
     .string()
     .datetime({ offset: true })
-    .default("2025-01-27T22:09:30.600098+01:00"),
+    .default("2026-06-14T05:05:32.664443+03:00"),
 });
 export type BatchAdditionalData = z.infer<typeof BatchAdditionalDataSchema>;

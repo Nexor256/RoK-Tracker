@@ -8,6 +8,8 @@ export const ScanPresetSchema = z.object({
       "Name",
       "Power",
       "Killpoints",
+      "Acclaim",
+      "Highest Acclaim",
       "Alliance",
       "T1 Kills",
       "T2 Kills",

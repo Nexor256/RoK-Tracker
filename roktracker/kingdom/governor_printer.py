@@ -51,6 +51,8 @@ def print_gov_state(gov_data: GovernorData, extra: AdditionalData) -> None:
     table.add_row("Governor Name", gov_data.name)
     table.add_row("Governor Power", str(gov_data.power))
     table.add_row("Governor Kill Points", str(gov_data.killpoints))
+    table.add_row("Governor Acclaim", str(gov_data.acclaim))
+    table.add_row("Governor Highest Acclaim", str(gov_data.acclaim_max))
     table.add_row("Governor Deads", str(gov_data.dead))
     table.add_row("Governor T1 Kills", str(gov_data.t1_kills))
     table.add_row("Governor T2 Kills", str(gov_data.t2_kills))

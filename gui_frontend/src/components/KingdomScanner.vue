@@ -300,11 +300,11 @@
     </div>
 
     <!-- Right Column: Results & Status -->
-    <div class="flex flex-col min-h-0">
-      <div class="flex-1 flex flex-col gap-2">
-        <LastGovernor />
+    <div class="flex flex-col min-h-0 lg:-mt-14">
+      <div class="flex-1 flex flex-col gap-2 min-h-0">
+        <LastGovernor class="flex-1 min-h-0" />
         <ScanStatus
-          class="mt-auto"
+          class="mt-auto shrink-0"
           :scan-id="kingdomStore.scanID"
           :status-message="kingdomStore.statusMessage"
         />
@@ -512,6 +512,8 @@ const infoToScan: TreeNode[] = [
           { label: 'Name' },
           { label: 'Power' },
           { label: 'Killpoints' },
+          { label: 'Acclaim' },
+          { label: 'Highest Acclaim' },
           { label: 'Alliance' },
         ],
       },
