@@ -24,7 +24,7 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
 - [Configuration](#configuration)
 - [Emulator Setup](#emulator-setup)
   - [Bluestacks 5](#bluestacks-5)
-  - [LD Player (Experimental)](#ld-player-experimental)
+  - [LD Player, MEmu, and Nox](#ld-player-memu-and-nox)
 - [Output Formats](#output-formats)
 - [Important Notes](#important-notes)
 - [Troubleshooting & Support](#troubleshooting--support)
@@ -100,7 +100,7 @@ The main scanner — configure presets, fine-tune timings, and track every gover
 - **OCR engine** — Tesseract with configurable page segmentation and engine modes
 - **Multiple output formats** — XLSX, CSV, and JSONL
 - **Modern GUI** — built with Vue 3, shadcn-vue, and Tailwind CSS
-- **Emulator support** — Bluestacks 5 (recommended) and LD Player (experimental)
+- **Emulator support** — Bluestacks 5 (recommended), LD Player, MEmu, and Nox
 - **Configurable timings** — fine-tune delays for different system speeds
 - **Automatic updates** — get notified of new versions and update with one click, no manual downloads needed
 
@@ -111,7 +111,7 @@ The main scanner — configure presets, fine-tune timings, and track every gover
 | Requirement            | Details                                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **OS**                 | Windows 10 or 11 (64-bit)                                                                                                 |
-| **Emulator**           | [Bluestacks 5](https://www.bluestacks.com/bluestacks-5.html) (recommended) or LD Player                                   |
+| **Emulator**           | [Bluestacks 5](https://www.bluestacks.com/bluestacks-5.html) (recommended), LD Player, MEmu, or Nox                                   |
 | **Tesseract Data**     | [Trained models](https://github.com/tesseract-ocr/tessdata) — place in `deps/tessdata/`                                   |
 | **ADB Platform Tools** | [Download](https://dl.google.com/android/repository/platform-tools_r31.0.3-windows.zip) — place in `deps/platform-tools/` |
 
@@ -232,7 +232,7 @@ Available settings include:
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Scan**     | Kingdom name, number of governors, resume, scroll mode, inactive tracking, power/kill validation, kill reconstruction, output formats (XLSX, CSV, JSONL) |
 | **OCR**      | Page segmentation mode, OCR engine mode, languages                                                                                                       |
-| **Emulator** | Emulator type (Bluestacks or LD Player), instance name, config file path, ADB port                                                                       |
+| **Emulator** | Emulator type (Bluestacks, LD Player, MEmu, or Nox), instance name, config file path, ADB port                                                                       |
 
 ---
 
@@ -255,22 +255,28 @@ Configure your Bluestacks instance with these settings:
 
 - Android Debug Bridge: **Turned on**
 
-#### Automatic Port Detection
+### Automatic Port Detection
 
-1. Open the **Settings** page in the app and set the Bluestacks config path to your `bluestacks.conf` file
-   - Usually located at `C:\ProgramData\BlueStacks_nxt\bluestacks.conf`
-2. Ensure the Bluestacks instance name in Settings matches your instance exactly
-3. If no `bluestacks.conf` file exists, your installation likely uses a fixed port (default: `5555`)
+The application supports automatic ADB port detection for all supported emulators:
 
-### LD Player (Experimental)
+**Bluestacks 5:**
+1. Open the **Settings** page in the app and set the Bluestacks config path to your `bluestacks.conf` file (usually `C:\ProgramData\BlueStacks_nxt\bluestacks.conf`).
+2. Ensure the Bluestacks instance name in Settings matches your instance exactly.
+3. If no `bluestacks.conf` file exists, your installation likely uses a fixed port (default: `5555`).
 
-Select **LD Player** as the emulator in the app's **Settings** page. LD Player support is experimental — Bluestacks 5 is recommended for the most reliable experience.
+**LD Player, MEmu, and Nox:**
+- The application will automatically attempt to detect the correct ADB port for running instances.
+- Simply ensure the emulator is running and ADB is enabled in its settings.
 
-Configure your LD Player instance with these settings:
+### LD Player, MEmu, and Nox
+
+Select **LD Player**, **MEmu**, or **Nox** as the emulator in the app's **Settings** page. Bluestacks 5 is recommended for the most reliable experience.
+
+Configure your emulator instance with these settings:
 
 **Display Tab** ([Screenshot](images/LD%20Player-dispaly.png)) — set the resolution and DPI listed above.
 
-**Other Settings** ([Screenshot](images/LD%20Player-others.png))
+**Other Settings** ([Screenshot](images/LD%20Player-others.png)) — Ensure ADB/Root permissions are enabled.
 
 ---
 

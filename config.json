@@ -27,7 +27,7 @@
     }
   },
   "general": {
-    "emulator": "BlueStacks",
+    "emulator": "bluestacks",
     "bluestacks": {
       "name": "BlueStacks App Player",
       "config": "C:\\ProgramData\\BlueStacks_nxt\\bluestacks.conf"
