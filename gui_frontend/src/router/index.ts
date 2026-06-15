@@ -25,7 +25,15 @@ router.beforeEach((to, from) => {
       if (toTopLevel === 'scanner') {
         to.meta.transitionIn = 'slide-down'
         to.meta.transitionOut = 'slide-down'
-      } else if (toTopLevel === 'settings') {
+      } else {
+        to.meta.transitionIn = 'slide-up'
+        to.meta.transitionOut = 'slide-up'
+      }
+    } else if (fromTopLevel === 'history') {
+      if (toTopLevel === 'scanner' || toTopLevel === 'calculator') {
+        to.meta.transitionIn = 'slide-down'
+        to.meta.transitionOut = 'slide-down'
+      } else {
         to.meta.transitionIn = 'slide-up'
         to.meta.transitionOut = 'slide-up'
       }

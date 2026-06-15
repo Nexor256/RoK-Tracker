@@ -71,5 +71,7 @@ import { Crown, Sprout, Award, Shield } from 'lucide-vue-next'
 import KingdomScanner from '@/components/KingdomScanner.vue'
 import BatchScanner from '@/components/BatchScanner.vue'
 
+defineOptions({ name: 'ScannerPage' })
+
 const tab = ref('kingdom')
 </script>

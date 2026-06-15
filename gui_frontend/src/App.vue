@@ -140,7 +140,7 @@
               :leave-to-class="`${(route.meta.transitionOut as string) ?? 'slide-up'}-leave-to`"
               mode="out-in"
             >
-              <keep-alive>
+              <keep-alive :include="['ScannerPage']">
                 <component :is="Component" />
               </keep-alive>
             </transition>
@@ -270,12 +270,17 @@ const handleConfirmDialogResponse = (confirmed: boolean) => {
 }
 
 // ---- Batch helpers ----
-const handleBatchScanId = (id: string, batchType: string) => {
+function parseBatchType(raw: string | unknown) {
   const parsed = BatchTypeSchema.safeParse(
-    typeof batchType === 'string' ? JSON.parse(batchType) : batchType,
+    typeof raw === 'string' ? JSON.parse(raw) : raw,
   )
-  if (parsed.success) {
-    switch (parsed.data.type) {
+  return parsed.success ? parsed.data : null
+}
+
+const handleBatchScanId = (id: string, batchType: string) => {
+  const parsedType = parseBatchType(batchType)
+  if (parsedType) {
+    switch (parsedType.type) {
       case 'Alliance':
         allianceStore.scanID = id
         break
@@ -290,13 +295,11 @@ const handleBatchScanId = (id: string, batchType: string) => {
 }
 
 const handleBatchUpdate = (governorData: unknown, extraData: unknown, batchType: string) => {
-  const parsed = BatchTypeSchema.safeParse(
-    typeof batchType === 'string' ? JSON.parse(batchType) : batchType,
-  )
-  if (parsed.success) {
+  const parsedType = parseBatchType(batchType)
+  if (parsedType) {
     const govParsed = BatchGovernorDataListSchema.parse(governorData)
     const extraParsed = BatchAdditionalDataSchema.parse(extraData)
-    switch (parsed.data.type) {
+    switch (parsedType.type) {
       case 'Alliance':
         allianceStore.lastGovernor = govParsed
         allianceStore.status = extraParsed
@@ -314,11 +317,9 @@ const handleBatchUpdate = (governorData: unknown, extraData: unknown, batchType:
 }
 
 const handleBatchStateUpdate = (state: string, batchType: string) => {
-  const parsed = BatchTypeSchema.safeParse(
-    typeof batchType === 'string' ? JSON.parse(batchType) : batchType,
-  )
-  if (parsed.success) {
-    switch (parsed.data.type) {
+  const parsedType = parseBatchType(batchType)
+  if (parsedType) {
+    switch (parsedType.type) {
       case 'Alliance':
         allianceStore.statusMessage = state
         break
@@ -332,12 +333,10 @@ const handleBatchStateUpdate = (state: string, batchType: string) => {
   }
 }
 
-const handleBatchScanFinished = (batchType: string) => {
-  const parsed = BatchTypeSchema.safeParse(
-    typeof batchType === 'string' ? JSON.parse(batchType) : batchType,
-  )
-  if (parsed.success) {
-    switch (parsed.data.type) {
+const handleBatchScanFinished = (batchType: string | unknown) => {
+  const parsedType = parseBatchType(batchType)
+  if (parsedType) {
+    switch (parsedType.type) {
       case 'Alliance':
         allianceStore.scanRunning = false
         allianceStore.startButtonDisabled = false

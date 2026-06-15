@@ -111,6 +111,7 @@ impl SidecarManager {
         // Spawn a reader thread that parses JSON lines from stdout
         // and emits them as Tauri events to the frontend
         let app_handle_stdout = app_handle.clone();
+        let child_arc = Arc::clone(&self.child);
         thread::spawn(move || {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
@@ -140,6 +141,29 @@ impl SidecarManager {
                         eprintln!("Sidecar stdout read error: {}", e);
                         break;
                     }
+                }
+            }
+            
+            // Wait a moment for process to exit after stdout closes
+            thread::sleep(std::time::Duration::from_millis(250));
+            
+            let status = {
+                if let Ok(mut lock) = child_arc.lock() {
+                    if let Some(child) = lock.as_mut() {
+                        child.try_wait().unwrap_or(None)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            };
+            
+            if let Some(status) = status {
+                if !status.success() {
+                    let msg = format!("Sidecar process crashed or exited unexpectedly (status: {})", status);
+                    let _ = app_handle_stdout.emit("sidecar:error", &msg);
+                    eprintln!("[sidecar] {}", msg);
                 }
             }
         });

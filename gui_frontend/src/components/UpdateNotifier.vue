@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { Download, X, RefreshCw, ArrowUpCircle } from 'lucide-vue-next'
@@ -75,8 +75,6 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
-import { computed } from 'vue'
-
 onMounted(() => {
   checkForUpdates()
 })
@@ -92,13 +90,13 @@ onMounted(() => {
     >
       <div
         v-if="updateAvailable && !dismissed"
-        class="fixed bottom-4 left-4 z-[100] w-[380px] pointer-events-auto"
+        class="fixed bottom-4 left-4 z-100 w-[380px] pointer-events-auto"
       >
         <div
           class="relative overflow-hidden rounded-xl border border-primary/20 bg-background/95 backdrop-blur-md shadow-2xl shadow-primary/10"
         >
           <!-- Gradient accent bar -->
-          <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/80 to-emerald-500" />
+          <div class="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-primary via-primary/80 to-emerald-500" />
 
           <div class="p-4 pt-5">
             <!-- Header -->
@@ -143,7 +141,7 @@ onMounted(() => {
               </div>
               <div class="relative h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
                 <div
-                  class="h-full rounded-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-300 ease-out"
+                  class="h-full rounded-full bg-linear-to-r from-primary to-emerald-500 transition-all duration-300 ease-out"
                   :style="{ width: `${progressPercent}%` }"
                 />
               </div>

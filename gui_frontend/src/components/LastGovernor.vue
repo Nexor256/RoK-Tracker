@@ -16,6 +16,7 @@
       </CardHeader>
 
       <Separator />
+      <Separator />
 
       <CardContent class="overflow-auto py-3 px-4">
         <!-- General -->
@@ -110,8 +111,22 @@
       <CardFooter class="flex-col gap-1.5 py-2.5 px-4">
         <!-- Progress percentage + counts -->
         <div class="flex w-full items-center justify-between text-sm">
-          <span class="font-semibold text-primary tabular-nums">{{ progressPercent }}%</span>
-          <span class="text-muted-foreground tabular-nums">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-primary tabular-nums">{{ progressPercent }}%</span>
+            <span
+              v-if="kingdomStore.status.ch_verification_mode"
+              class="text-xs text-muted-foreground font-medium uppercase tracking-wider"
+              >CH Verification</span
+            >
+          </div>
+          <span
+            v-if="kingdomStore.status.ch_verification_mode"
+            class="text-muted-foreground tabular-nums"
+          >
+            {{ kingdomStore.status.ch_current_governor }} /
+            {{ kingdomStore.status.ch_total_governors }}
+          </span>
+          <span v-else class="text-muted-foreground tabular-nums">
             {{ kingdomStore.status.current_governor }} / {{ kingdomStore.status.target_governor }}
           </span>
         </div>
@@ -256,6 +271,10 @@ const econStats = computed(() => [
 ])
 
 const progressValue = computed(() => {
+  if (kingdomStore.status.ch_verification_mode) {
+    if (kingdomStore.status.ch_total_governors <= 0) return 0
+    return (kingdomStore.status.ch_current_governor / kingdomStore.status.ch_total_governors) * 100
+  }
   if (kingdomStore.status.target_governor <= 0) return 0
   return (kingdomStore.status.current_governor / kingdomStore.status.target_governor) * 100
 })
