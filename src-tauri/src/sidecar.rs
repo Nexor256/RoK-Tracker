@@ -34,8 +34,20 @@ impl SidecarManager {
             let project_root = cwd.parent().unwrap_or(&cwd).to_path_buf();
             let script = project_root.join("scanner_sidecar.py");
             eprintln!("[sidecar] Dev mode — script: {}", script.display());
-            let python_exe = project_root.join(".venv").join("Scripts").join("python.exe");
-            (python_exe.to_string_lossy().to_string(), vec![script.to_string_lossy().to_string()], project_root)
+            
+            let venv_python = if cfg!(target_os = "windows") {
+                project_root.join(".venv").join("Scripts").join("python.exe")
+            } else {
+                project_root.join(".venv").join("bin").join("python")
+            };
+
+            let python_exe = if venv_python.exists() {
+                venv_python.to_string_lossy().to_string()
+            } else {
+                "python".to_string()
+            };
+
+            (python_exe, vec![script.to_string_lossy().to_string()], project_root)
         } else {
             // Tauri places externalBin binaries next to the app executable,
             // keeping the target-triple suffix: scanner_sidecar-{triple}[.exe]
@@ -99,6 +111,7 @@ impl SidecarManager {
         // Spawn a reader thread that parses JSON lines from stdout
         // and emits them as Tauri events to the frontend
         let app_handle_stdout = app_handle.clone();
+        let child_arc = Arc::clone(&self.child);
         thread::spawn(move || {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
@@ -128,6 +141,29 @@ impl SidecarManager {
                         eprintln!("Sidecar stdout read error: {}", e);
                         break;
                     }
+                }
+            }
+            
+            // Wait a moment for process to exit after stdout closes
+            thread::sleep(std::time::Duration::from_millis(250));
+            
+            let status = {
+                if let Ok(mut lock) = child_arc.lock() {
+                    if let Some(child) = lock.as_mut() {
+                        child.try_wait().unwrap_or(None)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            };
+            
+            if let Some(status) = status {
+                if !status.success() {
+                    let msg = format!("Sidecar process crashed or exited unexpectedly (status: {})", status);
+                    let _ = app_handle_stdout.emit("sidecar:error", &msg);
+                    eprintln!("[sidecar] {}", msg);
                 }
             }
         });

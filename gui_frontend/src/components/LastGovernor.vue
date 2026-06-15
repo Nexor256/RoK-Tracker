@@ -1,130 +1,181 @@
 <template>
-  <Card class="flex h-full flex-col">
-    <CardHeader class="pb-2">
-      <CardTitle>{{ kingdomStore.lastGovernor.name }}</CardTitle>
-      <CardDescription
-        >with id
-        <span class="font-medium text-primary">{{
-          kingdomStore.lastGovernor.id
-        }}</span></CardDescription
-      >
-    </CardHeader>
+  <TooltipProvider>
+    <Card class="flex flex-col flex-1 min-h-0" v-bind="$attrs">
+      <CardHeader class="pb-2">
+        <CardTitle
+          >{{ kingdomStore.lastGovernor.name }} #{{
+            kingdomStore.status.current_governor
+          }}</CardTitle
+        >
+        <CardDescription
+          >with id
+          <span class="font-medium text-primary">{{
+            kingdomStore.lastGovernor.id
+          }}</span></CardDescription
+        >
+      </CardHeader>
 
-    <Separator />
+      <Separator />
+      <Separator />
 
-    <CardContent class="flex-1 overflow-auto py-3 px-4">
-      <!-- General -->
-      <div class="space-y-1 text-sm">
-        <div class="flex justify-between">
-          <span>Power</span>
+      <CardContent class="overflow-auto py-3 px-4">
+        <!-- General -->
+        <div class="space-y-1 text-sm">
+          <div class="flex justify-between">
+            <span>Power</span>
+            <span class="font-medium text-primary tabular-nums">{{
+              formatNumber(kingdomStore.lastGovernor.power)
+            }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Killpoints</span>
+            <span class="font-medium text-primary tabular-nums">{{
+              formatNumber(kingdomStore.lastGovernor.killpoints)
+            }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Acclaim</span>
+            <span class="font-medium text-primary tabular-nums">{{
+              formatNumber(kingdomStore.lastGovernor.acclaim)
+            }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Highest Acclaim</span>
+            <span class="font-medium text-primary tabular-nums">{{
+              formatNumber(kingdomStore.lastGovernor.acclaim_max)
+            }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Alliance</span>
+            <span class="text-muted-foreground truncate ml-4 text-right">{{
+              kingdomStore.lastGovernor.alliance
+            }}</span>
+          </div>
+        </div>
+
+        <!-- Kills & Economy — unified stats box -->
+        <div
+          class="mt-3 rounded-lg bg-muted/50 dark:bg-muted/25 p-3 border border-border/60 dark:border-border/40"
+        >
+          <div class="grid grid-cols-2 gap-x-5 gap-y-1 text-sm">
+            <template v-for="stat in killStats" :key="stat.label">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted-foreground">{{ stat.label }}</span>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <span class="tabular-nums cursor-default">{{
+                      formatCompactNumber(stat.value)
+                    }}</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">{{ formatNumber(stat.value) }}</TooltipContent>
+                </Tooltip>
+              </div>
+            </template>
+          </div>
+          <Separator class="my-2.5" />
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-medium">Deaths</span>
+            <span class="font-medium text-primary tabular-nums">{{
+              formatNumber(kingdomStore.lastGovernor.dead)
+            }}</span>
+          </div>
+          <Separator class="my-2.5" />
+          <div class="grid grid-cols-2 gap-x-5 gap-y-1 text-sm">
+            <template v-for="stat in econStats" :key="stat.label">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted-foreground">{{ stat.label }}</span>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <span class="tabular-nums cursor-default">{{
+                      formatCompactNumber(stat.value)
+                    }}</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">{{ formatNumber(stat.value) }}</TooltipContent>
+                </Tooltip>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- City Hall — standalone -->
+        <div class="mt-3 flex items-center justify-between text-sm">
+          <span class="font-medium">City Hall</span>
           <span class="font-medium text-primary tabular-nums">{{
-            formatNumber(kingdomStore.lastGovernor.power)
+            kingdomStore.lastGovernor.city_hall_level
           }}</span>
         </div>
-        <div class="flex justify-between">
-          <span>Killpoints</span>
-          <span class="font-medium text-primary tabular-nums">{{
-            formatNumber(kingdomStore.lastGovernor.killpoints)
-          }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span>Alliance</span>
-          <span class="text-muted-foreground truncate ml-4 text-right">{{ kingdomStore.lastGovernor.alliance }}</span>
-        </div>
-      </div>
+      </CardContent>
 
-      <!-- Kills & Economy — unified stats box -->
-      <div class="mt-3 rounded-lg bg-muted/50 dark:bg-muted/25 p-3 border border-border/60 dark:border-border/40">
-        <div class="grid grid-cols-2 gap-x-5 gap-y-1 text-sm">
-          <TooltipProvider v-for="stat in killStats" :key="stat.label">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-muted-foreground">{{ stat.label }}</span>
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <span class="tabular-nums cursor-default">{{ formatCompactNumber(stat.value) }}</span>
-                </TooltipTrigger>
-                <TooltipContent side="left">{{ formatNumber(stat.value) }}</TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
+      <Separator />
+
+      <CardFooter class="flex-col gap-1.5 py-2.5 px-4">
+        <!-- Progress percentage + counts -->
+        <div class="flex w-full items-center justify-between text-sm">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-primary tabular-nums">{{ progressPercent }}%</span>
+            <span
+              v-if="kingdomStore.status.ch_verification_mode"
+              class="text-xs text-muted-foreground font-medium uppercase tracking-wider"
+              >CH Verification</span
+            >
+          </div>
+          <span
+            v-if="kingdomStore.status.ch_verification_mode"
+            class="text-muted-foreground tabular-nums"
+          >
+            {{ kingdomStore.status.ch_current_governor }} /
+            {{ kingdomStore.status.ch_total_governors }}
+          </span>
+          <span v-else class="text-muted-foreground tabular-nums">
+            {{ kingdomStore.status.current_governor }} / {{ kingdomStore.status.target_governor }}
+          </span>
         </div>
-        <Separator class="my-2.5" />
-        <div class="flex items-center justify-between text-sm">
-          <span class="font-medium">Deaths</span>
-          <span class="font-medium text-primary tabular-nums">{{ formatNumber(kingdomStore.lastGovernor.dead) }}</span>
-        </div>
-        <Separator class="my-2.5" />
-        <div class="grid grid-cols-2 gap-x-5 gap-y-1 text-sm">
-          <TooltipProvider v-for="stat in econStats" :key="stat.label">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-muted-foreground">{{ stat.label }}</span>
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <span class="tabular-nums cursor-default">{{ formatCompactNumber(stat.value) }}</span>
-                </TooltipTrigger>
-                <TooltipContent side="left">{{ formatNumber(stat.value) }}</TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
-        </div>
-      </div>
+        <!-- Progress bar -->
+        <Progress
+          :model-value="progressValue"
+          class="w-full h-2.5 transition-all duration-500 ease-out"
+        />
 
-      <!-- City Hall — standalone -->
-      <div class="mt-3 flex items-center justify-between text-sm">
-        <span class="font-medium">City Hall</span>
-        <span class="font-medium text-primary tabular-nums">{{ kingdomStore.lastGovernor.city_hall_level }}</span>
-      </div>
-    </CardContent>
-
-    <Separator />
-
-    <CardFooter class="flex-col gap-1.5 py-2.5 px-4">
-      <!-- Progress percentage + counts -->
-      <div class="flex w-full items-center justify-between text-sm">
-        <span class="font-semibold text-primary tabular-nums">{{ progressPercent }}%</span>
-        <span class="text-muted-foreground tabular-nums">
-          {{ kingdomStore.status.current_governor }} / {{ kingdomStore.status.target_governor }}
-        </span>
-      </div>
-      <!-- Progress bar -->
-      <Progress
-        :model-value="progressValue"
-        class="w-full h-2.5 transition-all duration-500 ease-out"
-      />
-
-      <!-- Scan speed — inline row with dot separators, slightly emphasized -->
-      <div class="flex w-full items-center justify-center rounded-md bg-muted/40 dark:bg-muted/20 py-1.5 text-xs tabular-nums mt-1">
-        <TooltipProvider>
+        <!-- Scan speed — inline row with dot separators, slightly emphasized -->
+        <div
+          class="flex w-full items-center justify-center rounded-md bg-muted/40 dark:bg-muted/20 py-1.5 text-xs tabular-nums mt-1"
+        >
           <Tooltip>
             <TooltipTrigger as-child>
-              <span class="text-primary font-medium cursor-help">{{ kingdomStore.status.avg_time_per_governor > 0 ? kingdomStore.status.avg_time_per_governor.toFixed(1) + 's/gov' : '—' }}</span>
+              <span class="text-primary font-medium cursor-help">{{
+                kingdomStore.status.avg_time_per_governor > 0
+                  ? kingdomStore.status.avg_time_per_governor.toFixed(1) + 's/gov'
+                  : '—'
+              }}</span>
             </TooltipTrigger>
             <TooltipContent>Average time to scan each governor</TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        <span class="text-muted-foreground/40 mx-2">•</span>
-        <TooltipProvider>
+          <span class="text-muted-foreground/40 mx-2">•</span>
           <Tooltip>
             <TooltipTrigger as-child>
-              <span class="text-primary font-medium cursor-help">{{ kingdomStore.status.scan_speed_per_hour > 0 ? Math.round(kingdomStore.status.scan_speed_per_hour) + '/hr' : '—' }}</span>
+              <span class="text-primary font-medium cursor-help">{{
+                kingdomStore.status.scan_speed_per_hour > 0
+                  ? Math.round(kingdomStore.status.scan_speed_per_hour) + '/hr'
+                  : '—'
+              }}</span>
             </TooltipTrigger>
             <TooltipContent>Governors scanned per hour</TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        <span class="text-muted-foreground/40 mx-2">•</span>
-        <TooltipProvider>
+          <span class="text-muted-foreground/40 mx-2">•</span>
           <Tooltip>
             <TooltipTrigger as-child>
-              <span class="text-primary font-medium cursor-help">{{ kingdomStore.status.elapsed_sec > 0 ? formatDuration(kingdomStore.status.elapsed_sec) : '—' }}</span>
+              <span class="text-primary font-medium cursor-help">{{
+                kingdomStore.status.elapsed_sec > 0
+                  ? formatDuration(kingdomStore.status.elapsed_sec)
+                  : '—'
+              }}</span>
             </TooltipTrigger>
             <TooltipContent>Total elapsed scan time</TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-      </div>
+        </div>
 
-      <!-- Time info row — short labels to avoid wrapping -->
-      <div class="flex w-full items-center justify-between text-xs mt-0.5">
-        <TooltipProvider>
+        <!-- Time info row — short labels to avoid wrapping -->
+        <div class="flex w-full items-center justify-between text-xs mt-0.5">
           <Tooltip>
             <TooltipTrigger as-child>
               <span class="text-muted-foreground cursor-help">
@@ -133,12 +184,10 @@
             </TooltipTrigger>
             <TooltipContent>Last Update: {{ lastUpdateFormatted }}</TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-        <span class="text-muted-foreground/60 tabular-nums">
-          {{ kingdomStore.status.skipped_governors }}
-          {{ kingdomStore.status.skipped_governors === 1 ? 'skip' : 'skips' }}
-        </span>
-        <TooltipProvider>
+          <span class="text-muted-foreground/60 tabular-nums">
+            {{ kingdomStore.status.skipped_governors }}
+            {{ kingdomStore.status.skipped_governors === 1 ? 'skip' : 'skips' }}
+          </span>
           <Tooltip>
             <TooltipTrigger as-child>
               <span class="text-muted-foreground cursor-help">
@@ -154,27 +203,28 @@
             </TooltipTrigger>
             <TooltipContent>{{ expectedFinishFormatted }}</TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-      </div>
-
-      <!-- CH Verification Progress -->
-      <div v-if="kingdomStore.status.ch_verification_mode" class="w-full mt-1 space-y-1">
-        <div class="flex justify-between text-xs text-muted-foreground">
-          <span>CH Verification</span>
-          <span
-            >{{ kingdomStore.status.ch_current_governor }} /
-            {{ kingdomStore.status.ch_total_governors }}</span
-          >
         </div>
-        <Progress
-          :model-value="
-            (kingdomStore.status.ch_current_governor / kingdomStore.status.ch_total_governors) * 100
-          "
-          class="w-full h-1.5"
-        />
-      </div>
-    </CardFooter>
-  </Card>
+
+        <!-- CH Verification Progress -->
+        <div v-if="kingdomStore.status.ch_verification_mode" class="w-full mt-1 space-y-1">
+          <div class="flex justify-between text-xs text-muted-foreground">
+            <span>CH Verification</span>
+            <span
+              >{{ kingdomStore.status.ch_current_governor }} /
+              {{ kingdomStore.status.ch_total_governors }}</span
+            >
+          </div>
+          <Progress
+            :model-value="
+              (kingdomStore.status.ch_current_governor / kingdomStore.status.ch_total_governors) *
+              100
+            "
+            class="w-full h-1.5"
+          />
+        </div>
+      </CardFooter>
+    </Card>
+  </TooltipProvider>
 </template>
 
 <script setup lang="ts">
@@ -221,6 +271,10 @@ const econStats = computed(() => [
 ])
 
 const progressValue = computed(() => {
+  if (kingdomStore.status.ch_verification_mode) {
+    if (kingdomStore.status.ch_total_governors <= 0) return 0
+    return (kingdomStore.status.ch_current_governor / kingdomStore.status.ch_total_governors) * 100
+  }
   if (kingdomStore.status.target_governor <= 0) return 0
   return (kingdomStore.status.current_governor / kingdomStore.status.target_governor) * 100
 })

@@ -17,11 +17,11 @@
     <div class="z-10 flex flex-1 flex-col overflow-hidden">
       <!-- Header -->
       <header
-        class="app-header sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-primary-foreground/10 px-6 text-primary-foreground"
+        class="app-header sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border/60 bg-background/75 px-6 text-foreground backdrop-blur-xl"
       >
         <div class="flex items-center gap-2.5">
           <div
-            class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-foreground/15 ring-1 ring-primary-foreground/20"
+            class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20"
           >
             <Radar class="h-4 w-4" />
           </div>
@@ -29,7 +29,7 @@
         </div>
         <div class="flex-1" />
         <button
-          class="theme-toggle rounded-full p-2 ring-1 ring-primary-foreground/15 transition-colors hover:bg-primary-foreground/15 hover:ring-primary-foreground/25"
+          class="theme-toggle rounded-full p-2 ring-1 ring-border/50 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground hover:ring-border"
           :class="{ 'theme-toggle--toggled': darkMode }"
           @click="() => toggleDarkMode()"
         >
@@ -67,7 +67,7 @@
       <div class="flex flex-1 overflow-hidden">
         <!-- Sidebar Navigation -->
         <nav
-          class="app-sidebar flex w-[128px] shrink-0 flex-col items-center gap-1 border-r bg-sidebar-background/80 p-2 overflow-y-auto scrollbar-hidden backdrop-blur-xl"
+          class="app-sidebar flex w-[120px] shrink-0 flex-col items-center gap-1 border-r bg-sidebar-background/80 p-2 overflow-y-auto scrollbar-hidden backdrop-blur-xl"
         >
           <template v-for="item in navItems" :key="item.to">
             <!-- Coming-soon items render as a disabled div -->
@@ -140,7 +140,7 @@
               :leave-to-class="`${(route.meta.transitionOut as string) ?? 'slide-up'}-leave-to`"
               mode="out-in"
             >
-              <keep-alive>
+              <keep-alive :include="['ScannerPage']">
                 <component :is="Component" />
               </keep-alive>
             </transition>
@@ -270,12 +270,17 @@ const handleConfirmDialogResponse = (confirmed: boolean) => {
 }
 
 // ---- Batch helpers ----
-const handleBatchScanId = (id: string, batchType: string) => {
+function parseBatchType(raw: string | unknown) {
   const parsed = BatchTypeSchema.safeParse(
-    typeof batchType === 'string' ? JSON.parse(batchType) : batchType,
+    typeof raw === 'string' ? JSON.parse(raw) : raw,
   )
-  if (parsed.success) {
-    switch (parsed.data.type) {
+  return parsed.success ? parsed.data : null
+}
+
+const handleBatchScanId = (id: string, batchType: string) => {
+  const parsedType = parseBatchType(batchType)
+  if (parsedType) {
+    switch (parsedType.type) {
       case 'Alliance':
         allianceStore.scanID = id
         break
@@ -290,13 +295,11 @@ const handleBatchScanId = (id: string, batchType: string) => {
 }
 
 const handleBatchUpdate = (governorData: unknown, extraData: unknown, batchType: string) => {
-  const parsed = BatchTypeSchema.safeParse(
-    typeof batchType === 'string' ? JSON.parse(batchType) : batchType,
-  )
-  if (parsed.success) {
+  const parsedType = parseBatchType(batchType)
+  if (parsedType) {
     const govParsed = BatchGovernorDataListSchema.parse(governorData)
     const extraParsed = BatchAdditionalDataSchema.parse(extraData)
-    switch (parsed.data.type) {
+    switch (parsedType.type) {
       case 'Alliance':
         allianceStore.lastGovernor = govParsed
         allianceStore.status = extraParsed
@@ -314,11 +317,9 @@ const handleBatchUpdate = (governorData: unknown, extraData: unknown, batchType:
 }
 
 const handleBatchStateUpdate = (state: string, batchType: string) => {
-  const parsed = BatchTypeSchema.safeParse(
-    typeof batchType === 'string' ? JSON.parse(batchType) : batchType,
-  )
-  if (parsed.success) {
-    switch (parsed.data.type) {
+  const parsedType = parseBatchType(batchType)
+  if (parsedType) {
+    switch (parsedType.type) {
       case 'Alliance':
         allianceStore.statusMessage = state
         break
@@ -332,12 +333,10 @@ const handleBatchStateUpdate = (state: string, batchType: string) => {
   }
 }
 
-const handleBatchScanFinished = (batchType: string) => {
-  const parsed = BatchTypeSchema.safeParse(
-    typeof batchType === 'string' ? JSON.parse(batchType) : batchType,
-  )
-  if (parsed.success) {
-    switch (parsed.data.type) {
+const handleBatchScanFinished = (batchType: string | unknown) => {
+  const parsedType = parseBatchType(batchType)
+  if (parsedType) {
+    switch (parsedType.type) {
       case 'Alliance':
         allianceStore.scanRunning = false
         allianceStore.startButtonDisabled = false

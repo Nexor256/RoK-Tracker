@@ -216,6 +216,8 @@ def scan_preset_to_scan_options(preset: ScanPreset) -> ScanOptions:
         name=ScanItems.NAME in preset.selections,
         power=ScanItems.POWER in preset.selections,
         killpoints=ScanItems.KILLPOINTS in preset.selections,
+        acclaim=ScanItems.ACCLAIM in preset.selections,
+        acclaim_max=ScanItems.ACCLAIM_MAX in preset.selections,
         alliance=ScanItems.ALLIANCE in preset.selections,
         t1_kills=ScanItems.T1_KILLS in preset.selections,
         t2_kills=ScanItems.T2_KILLS in preset.selections,
@@ -471,6 +473,8 @@ class KingdomScanner:
                     or self.scan_options.name
                     or self.scan_options.power
                     or self.scan_options.killpoints
+                    or self.scan_options.acclaim
+                    or self.scan_options.acclaim_max
                     or self.scan_options.alliance
                 )
             case 2:
@@ -637,7 +641,7 @@ class KingdomScanner:
                 # Fallback to robust preprocessing for themed profiles
                 if governor_data.power == "Unknown":
                     im_gov_power_bw = preprocessImageRobust(im_gov_power, 3, 100, 12, True)
-                    governor_data.power = ocr_number(api, im_gov_power_bw)
+                    governor_data.power = ocr_number(api, im_gov_power_bw, empty_retry=True)
 
             if self.scan_options.killpoints:
                 im_gov_killpoints = cropToRegion(
@@ -652,21 +656,38 @@ class KingdomScanner:
                     im_gov_killpoints_bw = preprocessImageRobust(
                         im_gov_killpoints, 3, 100, 12, True
                     )
-                    governor_data.killpoints = ocr_number(api, im_gov_killpoints_bw)
+                    governor_data.killpoints = ocr_number(api, im_gov_killpoints_bw, empty_retry=True)
+
+            if self.scan_options.acclaim:
+                im_gov_acclaim = cropToRegion(image, ui_positions["acclaim"])
+                im_gov_acclaim_bw = preprocessImage(im_gov_acclaim, 3, 100, 12, True)
+                governor_data.acclaim = ocr_number(api, im_gov_acclaim_bw)
+                # Fallback to robust preprocessing for themed profiles
+                if governor_data.acclaim == "Unknown":
+                    im_gov_acclaim_bw = preprocessImageRobust(im_gov_acclaim, 3, 100, 12, True)
+                    governor_data.acclaim = ocr_number(api, im_gov_acclaim_bw)
+
+            if self.scan_options.acclaim_max:
+                im_gov_acclaim_max = cropToRegion(image, ui_positions["acclaim_max"])
+                im_gov_acclaim_max_bw = preprocessImage(im_gov_acclaim_max, 3, 100, 12, True)
+                governor_data.acclaim_max = ocr_number(api, im_gov_acclaim_max_bw)
+                # Fallback to robust preprocessing for themed profiles
+                if governor_data.acclaim_max == "Unknown":
+                    im_gov_acclaim_max_bw = preprocessImageRobust(im_gov_acclaim_max, 3, 100, 12, True)
+                    governor_data.acclaim_max = ocr_number(api, im_gov_acclaim_max_bw)
 
             api.SetPageSegMode(PSM.SINGLE_LINE)
             if self.scan_options.id:
                 im_gov_id = cropToRegion(image, ui_positions["gov_id"])
-                im_gov_id_gray = cv2.cvtColor(im_gov_id, cv2.COLOR_BGR2GRAY)
-                im_gov_id_gray = cv2.bitwise_not(im_gov_id_gray)
-                (thresh, im_gov_id_bw) = cv2.threshold(
-                    im_gov_id_gray, 120, 255, cv2.THRESH_BINARY
-                )
+                
+                # Standard thresholding (using the existing utility for cleaner code)
+                im_gov_id_bw = preprocessImage(im_gov_id, 3, 120, 12, True)
                 governor_data.id = ocr_number(api, im_gov_id_bw)
+                
                 # Fallback to robust preprocessing for themed profiles
                 if governor_data.id == "Unknown":
                     im_gov_id_bw = preprocessImageRobust(im_gov_id, 3, 120, 12, True)
-                    governor_data.id = ocr_number(api, im_gov_id_bw)
+                    governor_data.id = ocr_number(api, im_gov_id_bw, empty_retry=True)
 
             if self.scan_options.alliance:
                 im_alliance_tag = cropToRegion(

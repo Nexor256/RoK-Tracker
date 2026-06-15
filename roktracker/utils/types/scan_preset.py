@@ -9,6 +9,8 @@ class ScanItems(StrEnum):
     NAME = "Name"
     POWER = "Power"
     KILLPOINTS = "Killpoints"
+    ACCLAIM = "Acclaim"
+    ACCLAIM_MAX = "Highest Acclaim"
     ALLIANCE = "Alliance"
     T1_KILLS = "T1 Kills"
     T2_KILLS = "T2 Kills"
@@ -33,6 +35,8 @@ class ScanOptions:
     name: bool = True
     power: bool = True
     killpoints: bool = True
+    acclaim: bool = True
+    acclaim_max: bool = True
     alliance: bool = True
     t1_kills: bool = True
     t2_kills: bool = True

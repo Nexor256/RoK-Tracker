@@ -7,6 +7,8 @@ ocr_regions_old = {
     "gov_id": (721, 177, 260, 38),
     "power": (876, 321, 218, 38),
     "killpoints": (1185, 313, 216, 38),
+    "acclaim": (0, 0, 10, 10),
+    "acclaim_max": (0, 0, 10, 10),
     "alliance_name": (586, 321, 279, 38),
     # second screen
     "t1_kills": (917, 414, 200, 38),
@@ -34,6 +36,8 @@ ocr_regions = {
     "gov_id": (714, 177, 260, 38),
     "power": (1142, 306, 218, 38),
     "killpoints": (876, 306, 216, 38),
+    "acclaim": (867, 385, 216, 38),
+    "acclaim_max": (1142, 385, 216, 38),
     "alliance_name": (586, 306, 279, 38),
     # second screen
     "t1_kills": (607, 397, 200, 38),
@@ -88,7 +92,7 @@ tap_positions = {
     "search_button": (1342, 142),
 }
 
-# City Hall level crop regions
+# City Hall level
 # format: (x, y, width, height)
 ch_level_region = (1218, 634, 32, 22)
-ch_level_region_padded = (1214, 630, 40, 30)  # +4px padding for UI shift tolerance
+ch_level_region_padded = (1214, 630, 40, 30)

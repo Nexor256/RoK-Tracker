@@ -31,6 +31,8 @@ class PandasHandler:
                 "Name": gov_data.name,
                 "Alliance": gov_data.alliance.rstrip(),
                 "Power": GovernorData.intify_value(gov_data.power),
+                "Acclaim": GovernorData.intify_value(gov_data.acclaim),
+                "Highest Acclaim": GovernorData.intify_value(gov_data.acclaim_max),
                 "T1 Kills": GovernorData.intify_value(gov_data.t1_kills),
                 "T2 Kills": GovernorData.intify_value(gov_data.t2_kills),
                 "T3 Kills": GovernorData.intify_value(gov_data.t3_kills),
