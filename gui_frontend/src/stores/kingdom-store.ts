@@ -9,6 +9,8 @@ export const useKingdomStore = defineStore('kingdom', () => {
     id: 123456,
     power: 1000000,
     killpoints: 1000000,
+    acclaim: 1000000,
+    acclaim_max: 2000000,
     alliance: 'Greatest Alliance Ever',
     t1_kills: 1000000,
     t2_kills: 1000000,

@@ -1,6 +1,6 @@
 <template>
   <TooltipProvider>
-    <Card class="flex flex-col">
+    <Card class="flex flex-col flex-1 min-h-0" v-bind="$attrs">
       <CardHeader class="pb-2">
         <CardTitle
           >{{ kingdomStore.lastGovernor.name }} #{{
@@ -16,6 +16,7 @@
       </CardHeader>
 
       <Separator />
+      <Separator />
 
       <CardContent class="overflow-auto py-3 px-4">
         <!-- General -->
@@ -30,6 +31,18 @@
             <span>Killpoints</span>
             <span class="font-medium text-primary tabular-nums">{{
               formatNumber(kingdomStore.lastGovernor.killpoints)
+            }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Acclaim</span>
+            <span class="font-medium text-primary tabular-nums">{{
+              formatNumber(kingdomStore.lastGovernor.acclaim)
+            }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Highest Acclaim</span>
+            <span class="font-medium text-primary tabular-nums">{{
+              formatNumber(kingdomStore.lastGovernor.acclaim_max)
             }}</span>
           </div>
           <div class="flex justify-between">
@@ -190,6 +203,24 @@
             </TooltipTrigger>
             <TooltipContent>{{ expectedFinishFormatted }}</TooltipContent>
           </Tooltip>
+        </div>
+
+        <!-- CH Verification Progress -->
+        <div v-if="kingdomStore.status.ch_verification_mode" class="w-full mt-1 space-y-1">
+          <div class="flex justify-between text-xs text-muted-foreground">
+            <span>CH Verification</span>
+            <span
+              >{{ kingdomStore.status.ch_current_governor }} /
+              {{ kingdomStore.status.ch_total_governors }}</span
+            >
+          </div>
+          <Progress
+            :model-value="
+              (kingdomStore.status.ch_current_governor / kingdomStore.status.ch_total_governors) *
+              100
+            "
+            class="w-full h-1.5"
+          />
         </div>
       </CardFooter>
     </Card>

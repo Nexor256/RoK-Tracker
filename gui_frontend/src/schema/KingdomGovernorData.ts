@@ -5,6 +5,8 @@ export const KingdomGovernorDataSchema = z.object({
   name: z.string().default("Skipped"),
   power: z.union([z.number().int(), z.string()]).default("Skipped"),
   killpoints: z.union([z.number().int(), z.string()]).default("Skipped"),
+  acclaim: z.union([z.number().int(), z.string()]).default("Skipped"),
+  acclaim_max: z.union([z.number().int(), z.string()]).default("Skipped"),
   alliance: z.string().default("Skipped"),
   t1_kills: z.union([z.number().int(), z.string()]).default("Skipped"),
   t1_kp: z.union([z.number().int(), z.string()]).default("Skipped"),
