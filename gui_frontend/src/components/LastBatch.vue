@@ -44,6 +44,7 @@
       <!-- Progress bar -->
       <Progress
         :model-value="progressValue"
+        aria-label="Scan progress"
         class="w-full h-2.5 transition-all duration-500 ease-out"
       />
 

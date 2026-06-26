@@ -133,6 +133,7 @@
         <!-- Progress bar -->
         <Progress
           :model-value="progressValue"
+          aria-label="Scan progress"
           class="w-full h-2.5 transition-all duration-500 ease-out"
         />
 
@@ -205,23 +206,7 @@
           </Tooltip>
         </div>
 
-        <!-- CH Verification Progress -->
-        <div v-if="kingdomStore.status.ch_verification_mode" class="w-full mt-1 space-y-1">
-          <div class="flex justify-between text-xs text-muted-foreground">
-            <span>CH Verification</span>
-            <span
-              >{{ kingdomStore.status.ch_current_governor }} /
-              {{ kingdomStore.status.ch_total_governors }}</span
-            >
-          </div>
-          <Progress
-            :model-value="
-              (kingdomStore.status.ch_current_governor / kingdomStore.status.ch_total_governors) *
-              100
-            "
-            class="w-full h-1.5"
-          />
-        </div>
+
       </CardFooter>
     </Card>
   </TooltipProvider>

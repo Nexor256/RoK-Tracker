@@ -13,7 +13,10 @@ def detect_emulators() -> List[Dict[str, Any]]:
         # 1. Get running processes
         # Use tasklist /FO CSV /NH to get CSV format with no header
         # Output looks like: "HD-Player.exe","24244","Console","1","50,116 K"
-        tasks_out = subprocess.check_output("tasklist /FO CSV /NH", shell=True, stderr=subprocess.STDOUT)
+        tasks_out = subprocess.check_output(
+            ["tasklist", "/FO", "CSV", "/NH"],
+            stderr=subprocess.STDOUT,
+        )
         tasks = tasks_out.decode("utf-8", errors="ignore")
         
         pid_to_name = {}
@@ -25,7 +28,10 @@ def detect_emulators() -> List[Dict[str, Any]]:
                 pid_to_name[pid] = name
 
         # 2. Get active TCP connections to find listening ports on localhost
-        netstat_out = subprocess.check_output("netstat -ano -p tcp", shell=True, stderr=subprocess.STDOUT)
+        netstat_out = subprocess.check_output(
+            ["netstat", "-ano", "-p", "tcp"],
+            stderr=subprocess.STDOUT,
+        )
         netstat = netstat_out.decode("utf-8", errors="ignore")
         
         # Emulator types mapping from executable name to id and display name

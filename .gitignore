@@ -619,6 +619,10 @@ nuitka-crash-report.xml
 
 # Sidecar runtime
 sidecar.log
+scanner_console.log
+sidecar_stderr.log
+sidecar_test_stderr.log
+src-tauri/sidecar_stderr.log
 
 # Log files
 npm-debug.log*

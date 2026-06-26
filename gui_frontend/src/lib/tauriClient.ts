@@ -13,7 +13,7 @@ import type { ScanPreset } from '@/schema/ScanPreset'
  * Ensures Tauri's invoke serializes a plain object, not a Proxy.
  */
 function toPlain<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(toRaw(obj)))
+  return structuredClone(toRaw(obj))
 }
 
 /**

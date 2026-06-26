@@ -31,6 +31,7 @@
         <button
           class="theme-toggle rounded-full p-2 ring-1 ring-border/50 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground hover:ring-border"
           :class="{ 'theme-toggle--toggled': darkMode }"
+          aria-label="Toggle theme"
           @click="() => toggleDarkMode()"
         >
           <svg

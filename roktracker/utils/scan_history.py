@@ -131,6 +131,15 @@ def _is_subpath(child: Path, parent: Path) -> bool:
         return False
 
 
+def _assert_scan_path(path: str) -> None:
+    """Raise ValueError if path is outside known scan directories."""
+    p = Path(path)
+    root = get_app_root()
+    allowed_dirs = [root / d for d in SCAN_DIRS.values()]
+    if not any(_is_subpath(p, d) for d in allowed_dirs):
+        raise ValueError(f"Path not inside scan directories: {path}")
+
+
 def _safe_val(v: Any) -> Any:
     """Convert pandas/numpy values to JSON-safe Python types."""
     if v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
@@ -203,6 +212,7 @@ def get_scan_detail(
     Returns:
         Dict with keys: path, columns, rows, summary, page, page_size, total_rows, total_pages.
     """
+    _assert_scan_path(path)
     df = read_scan_file(path)
     summary = compute_summary(df)
 
@@ -240,6 +250,8 @@ def compare_scans(path_a: str, path_b: str) -> Dict[str, Any]:
     - removed: governors in A but not B
     - changed: governors present in both with differing numeric fields
     """
+    _assert_scan_path(path_a)
+    _assert_scan_path(path_b)
     df_a = read_scan_file(path_a)
     df_b = read_scan_file(path_b)
 

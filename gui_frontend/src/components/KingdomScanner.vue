@@ -581,10 +581,11 @@ const handleMainButtonClick = () => {
       return
     }
     // Use the selected preset, or build one from current checkbox selections
-    const preset = selectedPreset.value ?? {
-      name: 'Custom',
+    const preset: ScanPreset = {
+      name: selectedPreset.value?.name ?? 'Custom',
       selections: [...configStore.selectedKingdomOptions.selections],
     }
+
     // Auto-save config so scanner-page tweaks aren't lost on crash
     ipc.saveConfig(configStore.config).catch(() => {})
     ipc.startKingdomScan(configStore.config, preset)
@@ -616,8 +617,11 @@ const flushGovUpdate = () => {
   if (!pendingGovUpdate) return
   const { gov, extra } = pendingGovUpdate
   pendingGovUpdate = null
-  kingdomStore.lastGovernor = KingdomGovernorDataSchema.parse(gov)
-  kingdomStore.status = KingdomAdditionalDataSchema.parse(extra)
+  const govResult = KingdomGovernorDataSchema.safeParse(gov)
+  if (govResult.success) kingdomStore.lastGovernor = govResult.data
+
+  const extraResult = KingdomAdditionalDataSchema.safeParse(extra)
+  if (extraResult.success) kingdomStore.status = extraResult.data
 }
 
 const governorUpdate = (governorData: unknown, extraData: unknown) => {

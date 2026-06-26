@@ -4,9 +4,6 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "shell:allow-spawn",
-    "shell:allow-stdin-write",
-    "shell:allow-kill",
     "updater:default",
     "process:default",
     "opener:default",

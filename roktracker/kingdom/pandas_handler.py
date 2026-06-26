@@ -79,7 +79,7 @@ class PandasHandler:
     def save(self):
         frame = pd.DataFrame(self.data_list)
         # Drop cols that contain skipped values
-        frame = frame.loc[:, ~(frame == -2).any()]
+        frame = frame.loc[:, ~(frame == -2).any()].copy()
         # Drop CH level column if all values are 'Skipped' (not used)
         if "City Hall Level" in frame.columns and (frame["City Hall Level"] == "Skipped").all():
             frame = frame.drop(columns=["City Hall Level"])
@@ -87,7 +87,7 @@ class PandasHandler:
         # Cast numeric columns to int64 to prevent float/scientific notation
         for col in self._int_columns():
             if col in frame.columns:
-                frame[col] = pd.to_numeric(frame[col], errors="coerce").astype("Int64")
+                frame.loc[:, col] = pd.to_numeric(frame[col], errors="coerce").astype("Int64")
 
         if self.formats.csv:
             frame.to_csv(self.path / (self.name + ".csv"), index=False)

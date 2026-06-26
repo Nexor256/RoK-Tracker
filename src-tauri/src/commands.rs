@@ -154,10 +154,28 @@ pub fn delete_scan_file(sidecar: State<'_, SidecarManager>, path: String) -> Res
 pub fn open_scan_folder(app: tauri::AppHandle, path: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
     let p = std::path::Path::new(&path);
-    // If the path is a file, reveal it in its parent directory
-    // If it's a directory, reveal the directory itself
+    let canon = p.canonicalize().map_err(|e| format!("Invalid path: {}", e))?;
+
+    // Determine project/app root depending on build mode
+    let root = if cfg!(debug_assertions) {
+        let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
+        cwd.parent().unwrap_or(&cwd).to_path_buf()
+    } else {
+        std::env::current_exe()
+            .map_err(|e| e.to_string())?
+            .parent()
+            .ok_or("Failed to get exe dir")?
+            .to_path_buf()
+    };
+
+    let allowed = ["scans_kingdom", "scans_alliance", "scans_honor", "scans_seed"];
+    let in_scan_dir = allowed.iter().any(|d| canon.starts_with(root.join(d)));
+    if !in_scan_dir {
+        return Err(format!("Path not in scan directories: {}", path));
+    }
+
     app.opener()
-        .reveal_item_in_dir(p)
+        .reveal_item_in_dir(&canon)
         .map_err(|e| e.to_string())
 }
 

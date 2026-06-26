@@ -835,6 +835,8 @@ class KingdomScanner:
             name=entry.get("Name", "Skipped"),
             power=de_intify(entry.get("Power", "Skipped")),
             killpoints=de_intify(entry.get("Killpoints", "Skipped")),
+            acclaim=de_intify(entry.get("Acclaim", "Skipped")),
+            acclaim_max=de_intify(entry.get("Highest Acclaim", "Skipped")),
             dead=de_intify(entry.get("Deads", "Skipped")),
             t1_kills=de_intify(entry.get("T1 Kills", "Skipped")),
             t2_kills=de_intify(entry.get("T2 Kills", "Skipped")),

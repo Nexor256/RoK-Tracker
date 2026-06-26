@@ -132,8 +132,10 @@ impl SidecarManager {
                                 let event_name = format!("sidecar:{}", event);
                                 let _ = app_handle_stdout.emit(&event_name, data);
                             }
-                            Err(e) => {
-                                eprintln!("Sidecar JSON parse error: {} — line: {}", e, text);
+                            Err(_) => {
+                                // If it's not JSON, it's a standard log line from Python
+                                let _ = app_handle_stdout.emit("sidecar:stdout", &text);
+                                eprintln!("[sidecar] {}", text);
                             }
                         }
                     }

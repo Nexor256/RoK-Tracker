@@ -29,7 +29,7 @@ def get_bluestacks_port(bluestacks_device_name: str, config: FullConfig) -> int:
                     key_port = key.replace("display_name", "status.adb_port")
                     port = bluestacks_config.get(dummy, key_port)
                     return int(port.strip('"'))
-        except:
+        except Exception:
             console.print(
                 "[red]Could not parse or find bluestacks config. Defaulting to 5555.[/red]"
             )
@@ -104,7 +104,7 @@ class AdvancedAdbClient:
         for i in range(3):
             try:
                 result = str(self.device.shell(command_to_execute))
-            except:
+            except Exception:
                 console.print("[red]ADB crashed[/red]")
                 self.kill_adb()
                 self.start_adb()
