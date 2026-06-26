@@ -573,11 +573,19 @@ const collapseAll = () => {
 const handleMainButtonClick = () => {
   if (!scanRunning.value) {
     if (configStore.config.scan.people_to_scan <= 0) {
-      toast({ title: 'Invalid Input', description: 'Governors to scan must be > 0', variant: 'destructive' })
+      toast({
+        title: 'Invalid Input',
+        description: 'Governors to scan must be > 0',
+        variant: 'destructive',
+      })
       return
     }
     if (configStore.selectedKingdomOptions.selections.length === 0) {
-      toast({ title: 'No Fields Selected', description: 'Select at least one field to scan', variant: 'destructive' })
+      toast({
+        title: 'No Fields Selected',
+        description: 'Select at least one field to scan',
+        variant: 'destructive',
+      })
       return
     }
     // Use the selected preset, or build one from current checkbox selections
