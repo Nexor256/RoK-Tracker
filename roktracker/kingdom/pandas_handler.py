@@ -78,8 +78,8 @@ class PandasHandler:
 
     def save(self):
         frame = pd.DataFrame(self.data_list)
-        # Drop cols that contain skipped values
-        frame = frame.loc[:, ~(frame == -2).any()].copy()
+        # Drop cols that are skipped for every governor (never actually scanned)
+        frame = frame.loc[:, ~(frame == -2).all()].copy()
         # Drop CH level column if all values are 'Skipped' (not used)
         if "City Hall Level" in frame.columns and (frame["City Hall Level"] == "Skipped").all():
             frame = frame.drop(columns=["City Hall Level"])

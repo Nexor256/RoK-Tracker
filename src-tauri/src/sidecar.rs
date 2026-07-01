@@ -105,8 +105,8 @@ impl SidecarManager {
         let stdout = child.stdout.take().ok_or("Failed to get sidecar stdout")?;
         let stderr = child.stderr.take().ok_or("Failed to get sidecar stderr")?;
 
-        *self.stdin_handle.lock().unwrap() = Some(stdin);
-        *self.child.lock().unwrap() = Some(child);
+        *self.stdin_handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(stdin);
+        *self.child.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
 
         // Spawn a reader thread that parses JSON lines from stdout
         // and emits them as Tauri events to the frontend
@@ -212,7 +212,7 @@ impl SidecarManager {
             msg["args"] = a;
         }
 
-        let mut stdin_guard = self.stdin_handle.lock().unwrap();
+        let mut stdin_guard = self.stdin_handle.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(ref mut stdin) = *stdin_guard {
             let line = serde_json::to_string(&msg).map_err(|e| e.to_string())?;
             stdin
@@ -230,10 +230,10 @@ impl SidecarManager {
 
     /// Kill the sidecar process.
     pub fn kill(&self) {
-        if let Some(ref mut child) = *self.child.lock().unwrap() {
+        if let Some(ref mut child) = *self.child.lock().unwrap_or_else(|e| e.into_inner()) {
             let _ = child.kill();
         }
-        *self.stdin_handle.lock().unwrap() = None;
+        *self.stdin_handle.lock().unwrap_or_else(|e| e.into_inner()) = None;
     }
 }
 

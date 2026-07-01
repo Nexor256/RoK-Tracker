@@ -272,9 +272,7 @@ const handleConfirmDialogResponse = (confirmed: boolean) => {
 
 // ---- Batch helpers ----
 function parseBatchType(raw: string | unknown) {
-  const parsed = BatchTypeSchema.safeParse(
-    typeof raw === 'string' ? JSON.parse(raw) : raw,
-  )
+  const parsed = BatchTypeSchema.safeParse(typeof raw === 'string' ? JSON.parse(raw) : raw)
   return parsed.success ? parsed.data : null
 }
 
