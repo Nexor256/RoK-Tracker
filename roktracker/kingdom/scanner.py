@@ -27,66 +27,70 @@ from roktracker.utils.types.scan_preset import ScanItems, ScanOptions, ScanPrese
 
 logger = logging.getLogger(__name__)
 
+# --- Clipboard ctypes setup (one-time, module-level) ---
+_user32 = ctypes.windll.user32
+_kernel32 = ctypes.windll.kernel32
+
+_user32.OpenClipboard.argtypes = [wintypes.HWND]
+_user32.OpenClipboard.restype = wintypes.BOOL
+
+_user32.GetClipboardData.argtypes = [wintypes.UINT]
+_user32.GetClipboardData.restype = wintypes.HANDLE
+
+_user32.CloseClipboard.argtypes = []
+_user32.CloseClipboard.restype = wintypes.BOOL
+
+_user32.EmptyClipboard.argtypes = []
+_user32.EmptyClipboard.restype = wintypes.BOOL
+
+_kernel32.GlobalLock.argtypes = [wintypes.HANDLE]
+_kernel32.GlobalLock.restype = wintypes.c_void_p
+
+_kernel32.GlobalUnlock.argtypes = [wintypes.HANDLE]
+_kernel32.GlobalUnlock.restype = wintypes.BOOL
+
+_kernel32.GlobalSize.argtypes = [wintypes.HANDLE]
+_kernel32.GlobalSize.restype = ctypes.c_size_t
+
+_CF_UNICODETEXT = 13
+
+
 def get_clipboard_text_ctypes() -> str:
-    user32 = ctypes.windll.user32
-    kernel32 = ctypes.windll.kernel32
-    
-    user32.OpenClipboard.argtypes = [wintypes.HWND]
-    user32.OpenClipboard.restype = wintypes.BOOL
-    
-    user32.GetClipboardData.argtypes = [wintypes.UINT]
-    user32.GetClipboardData.restype = wintypes.HANDLE
-    
-    user32.CloseClipboard.argtypes = []
-    user32.CloseClipboard.restype = wintypes.BOOL
-    
-    kernel32.GlobalLock.argtypes = [wintypes.HANDLE]
-    kernel32.GlobalLock.restype = wintypes.c_void_p
-    
-    kernel32.GlobalUnlock.argtypes = [wintypes.HANDLE]
-    kernel32.GlobalUnlock.restype = wintypes.BOOL
-    
-    kernel32.GlobalSize.argtypes = [wintypes.HANDLE]
-    kernel32.GlobalSize.restype = ctypes.c_size_t
-    
-    CF_UNICODETEXT = 13
-    
-    if not user32.OpenClipboard(None):
+    if not _user32.OpenClipboard(None):
         raise RuntimeError("Failed to open clipboard")
-    
+
     try:
-        handle = user32.GetClipboardData(CF_UNICODETEXT)
+        handle = _user32.GetClipboardData(_CF_UNICODETEXT)
         if not handle:
             raise RuntimeError("No clipboard data")
-        
-        ptr = kernel32.GlobalLock(handle)
+
+        ptr = _kernel32.GlobalLock(handle)
         if not ptr:
             raise RuntimeError("Failed to lock clipboard data")
-        
+
         try:
-            size = kernel32.GlobalSize(handle)
+            size = _kernel32.GlobalSize(handle)
             if size > 0:
                 raw_bytes = ctypes.string_at(ptr, size)
-                val = raw_bytes.decode('utf-16-le', errors='ignore')
+                val = raw_bytes.decode('utf-16-le', errors='ignore').rstrip('\x00')
             else:
                 val = ctypes.c_wchar_p(ptr).value
-                
+
             if not val:
                 raise RuntimeError("Clipboard is empty")
             return val
         finally:
-            kernel32.GlobalUnlock(handle)
+            _kernel32.GlobalUnlock(handle)
     finally:
-        user32.CloseClipboard()
+        _user32.CloseClipboard()
 
 def empty_clipboard():
-    user32 = ctypes.windll.user32
-    if not user32.OpenClipboard(None):
+    if not _user32.OpenClipboard(None):
         return
     try:
-        user32.EmptyClipboard()
+        _user32.EmptyClipboard()
     finally:
-        user32.CloseClipboard()
+        _user32.CloseClipboard()
 
 def parse_clipboard_parcel(raw: str) -> str:
     """Extract clipboard text from Android 'service call clipboard' parcel output.
@@ -137,6 +141,8 @@ def parse_clipboard_parcel(raw: str) -> str:
 
     # Filter out MIME types and known metadata, return the last real string
     skip_prefixes = ("text/", "application/", "android.", "com.android")
+    # Regex to detect Java stack trace lines (e.g. "at com.android.server...")
+    _stack_trace_re = re.compile(r"^at\s+[a-zA-Z_][a-zA-Z0-9_.]+\(")
     for text in reversed(strings_found):
         stripped = text.strip()
         if not stripped:
@@ -146,6 +152,9 @@ def parse_clipboard_parcel(raw: str) -> str:
             continue
         # Skip strings that look like MIME types (e.g. "image/png")
         if "/" in lower and len(lower) < 40 and " " not in lower:
+            continue
+        # Skip Java stack trace lines that dodged prefix check
+        if _stack_trace_re.match(stripped):
             continue
         return stripped
 
@@ -165,6 +174,10 @@ def clean_clipboard_name(raw_name: str) -> str:
     The real governor name starts after the MIME-type and a few junk bytes.
     """
     if not raw_name:
+        return ""
+
+    # Reject Java stack traces that ADB clipboard may have captured
+    if re.search(r"at\s+com\.android\.server\.", raw_name):
         return ""
 
     # Pattern: "mass_copy" + "text/plain" + 1-4 junk chars + real name

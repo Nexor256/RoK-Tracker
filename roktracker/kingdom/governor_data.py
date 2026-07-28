@@ -157,11 +157,11 @@ class GovernorData:
                 kill_dif_t1 = (to_int_check(self.t1_kp) % 10) - (kills_t1 % 10)
                 kills_t1 = kills_t1 + kill_dif_t1
 
-            self.t1_kills = str(kills_t1)
-            self.t2_kills = str(to_int_check(self.t2_kp) / 2)
-            self.t3_kills = str(to_int_check(self.t3_kp) / 4)
-            self.t4_kills = str(to_int_check(self.t4_kp) / 10)
-            self.t5_kills = str(to_int_check(self.t5_kp) / 20)
+            self.t1_kills = str(int(kills_t1))
+            self.t2_kills = str(to_int_check(self.t2_kp) // 2)
+            self.t3_kills = str(to_int_check(self.t3_kp) // 4)
+            self.t4_kills = str(to_int_check(self.t4_kp) // 10)
+            self.t5_kills = str(to_int_check(self.t5_kp) // 20)
             return True
         else:
             return False
