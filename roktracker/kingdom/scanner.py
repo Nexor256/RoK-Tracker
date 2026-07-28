@@ -44,7 +44,7 @@ _user32.EmptyClipboard.argtypes = []
 _user32.EmptyClipboard.restype = wintypes.BOOL
 
 _kernel32.GlobalLock.argtypes = [wintypes.HANDLE]
-_kernel32.GlobalLock.restype = wintypes.c_void_p
+_kernel32.GlobalLock.restype = ctypes.c_void_p
 
 _kernel32.GlobalUnlock.argtypes = [wintypes.HANDLE]
 _kernel32.GlobalUnlock.restype = wintypes.BOOL

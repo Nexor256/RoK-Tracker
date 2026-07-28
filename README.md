@@ -24,6 +24,7 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
 - [Configuration](#configuration)
 - [Emulator Setup](#emulator-setup)
   - [Bluestacks 5](#bluestacks-5)
+  - [Automatic Port Detection](#automatic-port-detection)
   - [LD Player, MEmu, and Nox](#ld-player-memu-and-nox)
 - [Output Formats](#output-formats)
 - [Important Notes](#important-notes)
@@ -43,13 +44,9 @@ The main scanner — configure presets, fine-tune timings, and track every gover
   <img src="images/kingdom.png" alt="Kingdom Scanner" width="800">
 </p>
 
-<h3 align="center">Alliance Scanner &nbsp;&nbsp;|&nbsp;&nbsp; Honor Scanner &nbsp;&nbsp;|&nbsp;&nbsp; Seed Scanner</h3>
+<h3 align="center">Seed / Alliance / Honor Scanners</h3>
 <p align="center">
-  <img src="images/alliance.png" alt="Alliance Scanner" width="270">
-  &nbsp;&nbsp;
-  <img src="images/honor.png" alt="Honor Scanner" width="270">
-  &nbsp;&nbsp;
-  <img src="images/seed.png" alt="Seed Scanner" width="270">
+  <img src="images/batch.png" alt="Seed / Alliance / Honor Scanners" width="800">
 </p>
 
 ---
@@ -274,7 +271,7 @@ Select **LD Player**, **MEmu**, or **Nox** as the emulator in the app's **Settin
 
 Configure your emulator instance with these settings:
 
-**Display Tab** ([Screenshot](images/LD%20Player-dispaly.png)) — set the resolution and DPI listed above.
+**Display Tab** ([Screenshot](images/LD%20Player-display.png)) — set the resolution and DPI listed above.
 
 **Other Settings** ([Screenshot](images/LD%20Player-others.png)) — Ensure ADB/Root permissions are enabled.
 
