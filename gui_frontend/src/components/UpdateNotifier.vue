@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { check } from '@tauri-apps/plugin-updater'
-import { relaunch } from '@tauri-apps/plugin-process'
+import { relaunch, exit } from '@tauri-apps/plugin-process'
 import { Download, X, RefreshCw, ArrowUpCircle } from 'lucide-vue-next'
 
 const updateAvailable = ref(false)
@@ -49,9 +49,14 @@ async function startUpdate() {
           break
       }
     })
-    // On Windows the app exits automatically during install.
-    // On other platforms relaunch:
-    await relaunch()
+    // On Windows, the NSIS installer runs in the background and waits for the app to close.
+    // Relaunching immediately starts a new instance that locks the executable, causing the update to fail.
+    // We exit instead, allowing the installer to finish and automatically launch the new version.
+    if (navigator.userAgent.includes('Windows') || navigator.userAgent.includes('Win')) {
+      await exit(0)
+    } else {
+      await relaunch()
+    }
   } catch (e) {
     console.error('Update install failed:', e)
     downloading.value = false
@@ -90,7 +95,7 @@ onMounted(() => {
     >
       <div
         v-if="updateAvailable && !dismissed"
-        class="fixed bottom-4 left-4 z-100 w-[380px] pointer-events-auto"
+        class="fixed bottom-4 left-4 z-100 w-95 pointer-events-auto"
       >
         <div
           class="relative overflow-hidden rounded-xl border border-primary/20 bg-background/95 backdrop-blur-md shadow-2xl shadow-primary/10"
@@ -125,13 +130,13 @@ onMounted(() => {
             <!-- Release notes (truncated) -->
             <p
               v-if="updateNotes && !downloading"
-              class="mt-3 text-xs text-muted-foreground leading-relaxed line-clamp-2 pl-[52px]"
+              class="mt-3 text-xs text-muted-foreground leading-relaxed line-clamp-2 pl-13"
             >
               {{ updateNotes }}
             </p>
 
             <!-- Download progress -->
-            <div v-if="downloading" class="mt-3 pl-[52px]">
+            <div v-if="downloading" class="mt-3 pl-13">
               <div class="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                 <span class="flex items-center gap-1.5">
                   <RefreshCw class="h-3 w-3 animate-spin" />
@@ -151,7 +156,7 @@ onMounted(() => {
             </div>
 
             <!-- Action buttons -->
-            <div v-if="!downloading" class="mt-3 flex gap-2 pl-[52px]">
+            <div v-if="!downloading" class="mt-3 flex gap-2 pl-13">
               <button
                 class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
                 @click="startUpdate"
