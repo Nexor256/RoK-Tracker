@@ -76,13 +76,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           echo "Updating app version to $VERSION"
-          node -e "
-            const fs = require('fs');
-            const file = 'src-tauri/tauri.conf.json';
-            const data = JSON.parse(fs.readFileSync(file));
-            data.version = '$VERSION';
-            fs.writeFileSync(file, JSON.stringify(data, null, 2));
-          "
+          VERSION="$VERSION" node scripts/sync-version-from-git.mjs
 
       - name: Build Tauri app
         env:

@@ -81,6 +81,11 @@ class BatchScannerBase:
             self.root_dir / "deps" / "inputs",
         )
 
+        # Persistent Tesseract API instance
+        self._tess_api = PyTessBaseAPI(
+            path=str(self.tesseract_path), psm=PSM.SINGLE_WORD, oem=OEM.LSTM_ONLY
+        )
+
     def set_batch_callback(
         self, cb: Callable[[List[GovernorData], AdditionalData], None]
     ) -> None:
@@ -136,58 +141,54 @@ class BatchScannerBase:
         image = load_cv2_img(self.img_path / "currentState.png", cv2.IMREAD_UNCHANGED)
 
         ui = self.ui_settings
+        api = self._tess_api
 
         # Check for last screen (only for layouts with a distinct "last screen" region)
         if self.has_last_screen_variant:
-            with PyTessBaseAPI(
-                path=str(self.tesseract_path), psm=PSM.SINGLE_WORD, oem=OEM.LSTM_ONLY
-            ) as api:
-                # fmt: off
-                test_score_im = cropToRegion(image, ui.score_normal[0])
-                test_score_im_bw = preprocessImage(
-                    test_score_im, 3, ui.misc.threshold,
-                    12, ui.misc.invert,
-                )
-                # fmt: on
+            api.SetPageSegMode(PSM.SINGLE_WORD)
+            # fmt: off
+            test_score_im = cropToRegion(image, ui.score_normal[0])
+            test_score_im_bw = preprocessImage(
+                test_score_im, 3, ui.misc.threshold,
+                12, ui.misc.invert,
+            )
+            # fmt: on
 
-                api.SetImage(Image.fromarray(test_score_im_bw))  # type: ignore
-                test_score = api.GetUTF8Text()
-                test_score = re.sub("[^0-9]", "", test_score)
+            api.SetImage(Image.fromarray(test_score_im_bw))  # type: ignore
+            test_score = api.GetUTF8Text()
+            test_score = re.sub("[^0-9]", "", test_score)
 
-                if test_score == "":
-                    self.reached_bottom = True
+            if test_score == "":
+                self.reached_bottom = True
 
         # Actual scanning
         govs = []
-        with PyTessBaseAPI(
-            path=str(self.tesseract_path), psm=PSM.SINGLE_LINE, oem=OEM.LSTM_ONLY
-        ) as api:
-            for gov_number in range(0, self.govs_per_screen):
-                gov = self.process_screen(image, gov_number)
-                api.SetPageSegMode(PSM.SINGLE_LINE)
-                gov_name = ocr_text(api, gov.name_img)
+        for gov_number in range(0, self.govs_per_screen):
+            gov = self.process_screen(image, gov_number)
+            api.SetPageSegMode(PSM.SINGLE_LINE)
+            gov_name = ocr_text(api, gov.name_img)
 
-                api.SetPageSegMode(PSM.SINGLE_WORD)
-                gov_score = ocr_number(api, gov.score_img)
+            api.SetPageSegMode(PSM.SINGLE_WORD)
+            gov_score = ocr_number(api, gov.score_img)
 
-                # fmt: off
-                gov_img_path = str(self.img_path / f"gov_name_{(6 * screen_number) + gov_number}.png")
-                # fmt: on
-                write_cv2_img(
-                    gov.name_img_small,
-                    gov_img_path,
-                    "png",
+            # fmt: off
+            gov_img_path = str(self.img_path / f"gov_name_{(6 * screen_number) + gov_number}.png")
+            # fmt: on
+            write_cv2_img(
+                gov.name_img_small,
+                gov_img_path,
+                "png",
+            )
+
+            govs.append(
+                GovernorData(
+                    **{
+                        "img_path": gov_img_path,
+                        "name": gov_name,
+                        "score": gov_score,
+                    }
                 )
-
-                govs.append(
-                    GovernorData(
-                        **{
-                            "img_path": gov_img_path,
-                            "name": gov_name,
-                            "score": gov_score,
-                        }
-                    )
-                )
+            )
 
         return govs
 
@@ -240,6 +241,7 @@ class BatchScannerBase:
         else:
             data_handler.save()
         self.adb_client.kill_adb()  # make sure to clean up adb server
+        self.cleanup()
 
         for p in self.img_path.glob("gov_name*.png"):
             p.unlink()
@@ -247,6 +249,13 @@ class BatchScannerBase:
         self.state_callback("Scan finished")
 
         return
+
+    def cleanup(self):
+        """Release persistent resources."""
+        try:
+            self._tess_api.End()
+        except Exception:
+            pass
 
     def end_scan(self) -> None:
         self.stop_scan = True

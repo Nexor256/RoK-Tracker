@@ -16,7 +16,6 @@
       </CardHeader>
 
       <Separator />
-      <Separator />
 
       <CardContent class="overflow-auto py-3 px-4">
         <!-- General -->

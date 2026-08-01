@@ -319,7 +319,7 @@
     </div>
 
     <!-- Dialogs -->
-    <AlertDialog :open="saveDialogOpen">
+    <AlertDialog v-model:open="saveDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Save Preset</AlertDialogTitle>
@@ -335,7 +335,7 @@
       </AlertDialogContent>
     </AlertDialog>
 
-    <AlertDialog :open="deleteDialogOpen">
+    <AlertDialog v-model:open="deleteDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Preset</AlertDialogTitle>
@@ -354,7 +354,7 @@
       </AlertDialogContent>
     </AlertDialog>
 
-    <AlertDialog :open="confirmDialogOpen">
+    <AlertDialog :open="confirmDialogOpen" @update:open="onConfirmOpenChange">
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Confirm</AlertDialogTitle>
@@ -606,10 +606,22 @@ const handleMainButtonClick = () => {
 
 // ---- IPC callbacks ----
 const confirmDialogOpen = ref(false)
+let awaitingConfirm = false
 
 const handleConfirmResponse = (confirmed: boolean) => {
+  if (!awaitingConfirm) return
+  awaitingConfirm = false
   confirmDialogOpen.value = false
   ipc.confirmKingdomScan(confirmed)
+}
+
+const onConfirmOpenChange = (open: boolean) => {
+  if (open) {
+    confirmDialogOpen.value = true
+    return
+  }
+  // Escape / dismiss — treat as No if still awaiting
+  handleConfirmResponse(false)
 }
 
 const setScanId = (id: string) => {
@@ -644,6 +656,7 @@ const stateUpdate = (state: string) => {
 }
 
 const askConfirm = (_message: string) => {
+  awaitingConfirm = true
   confirmDialogOpen.value = true
 }
 

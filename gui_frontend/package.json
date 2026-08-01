@@ -1,6 +1,6 @@
 {
   "name": "rok-tracker-suite-gui",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "RoK Tracker Suite GUI",
   "productName": "Rok Tracker Suite GUI",
   "author": "Nexor256",
@@ -13,6 +13,9 @@
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
+    "sync:version": "node ../scripts/sync-version-from-git.mjs",
+    "tauri:dev": "node ../scripts/sync-version-from-git.mjs && tauri dev",
+    "tauri:build": "node ../scripts/sync-version-from-git.mjs && tauri build",
     "generate:zod": "tsx node_scripts/generateZod.ts",
     "generate:json-schema": "uv run --directory .. schema_generator.py",
     "generate:all": "pnpm run generate:json-schema && pnpm run generate:zod"

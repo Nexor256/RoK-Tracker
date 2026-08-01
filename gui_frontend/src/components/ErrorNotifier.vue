@@ -1,5 +1,5 @@
 <template>
-  <AlertDialog :open="errorStore.hasError">
+  <AlertDialog :open="errorStore.hasError" @update:open="onOpenChange">
     <AlertDialogContent class="sm:max-w-[500px]">
       <AlertDialogHeader>
         <AlertDialogTitle class="flex items-center gap-2 text-destructive">
@@ -48,5 +48,11 @@ const errorStore = useErrorStore()
 
 function handleAcknowledge() {
   errorStore.clearError()
+}
+
+function onOpenChange(open: boolean) {
+  if (!open) {
+    errorStore.clearError()
+  }
 }
 </script>

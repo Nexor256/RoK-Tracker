@@ -150,7 +150,7 @@
       </div>
 
       <!-- Confirm Dialog (replaces $q.dialog) -->
-      <AlertDialog :open="confirmDialogOpen">
+      <AlertDialog :open="confirmDialogOpen" @update:open="onConfirmDialogOpenChange">
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm</AlertDialogTitle>
@@ -174,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, markRaw, onMounted, onUnmounted, onErrorCaptured, watchEffect } from 'vue'
+import { ref, markRaw, nextTick, onMounted, onUnmounted, onErrorCaptured, watchEffect } from 'vue'
 import { useDark, useToggle } from '@vueuse/core'
 import { useConfigStore } from './stores/config-store'
 import { FullConfigSchema } from './schema/FullConfig'
@@ -260,7 +260,11 @@ const showConfirmDialog = (message: string, resolve: (value: boolean) => void): 
   processConfirmQueue()
 }
 
+let suppressConfirmOpenSync = false
+
 const handleConfirmDialogResponse = (confirmed: boolean) => {
+  if (confirmQueue.length === 0) return
+  suppressConfirmOpenSync = true
   confirmDialogOpen.value = false
   const current = confirmQueue.shift()
   if (current) {
@@ -268,6 +272,23 @@ const handleConfirmDialogResponse = (confirmed: boolean) => {
   }
   // Show next queued dialog, if any
   processConfirmQueue()
+  nextTick(() => {
+    suppressConfirmOpenSync = false
+  })
+}
+
+const onConfirmDialogOpenChange = (open: boolean) => {
+  if (suppressConfirmOpenSync) return
+  if (open) {
+    confirmDialogOpen.value = true
+    return
+  }
+  // Escape / dismiss while a request is still pending — treat as No
+  if (confirmDialogOpen.value && confirmQueue.length > 0) {
+    handleConfirmDialogResponse(false)
+  } else {
+    confirmDialogOpen.value = false
+  }
 }
 
 // ---- Batch helpers ----

@@ -133,7 +133,7 @@
   </div>
 
   <!-- Delete confirmation dialog -->
-  <AlertDialog :open="deleteDialogOpen">
+  <AlertDialog v-model:open="deleteDialogOpen">
     <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle>Delete Scan File</AlertDialogTitle>

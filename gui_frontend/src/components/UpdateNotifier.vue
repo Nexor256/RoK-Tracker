@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch, exit } from '@tauri-apps/plugin-process'
-import { Download, X, RefreshCw, ArrowUpCircle } from 'lucide-vue-next'
+import { Download, X, RefreshCw, ArrowUpCircle, AlertCircle } from 'lucide-vue-next'
 
 const updateAvailable = ref(false)
 const updateVersion = ref('')
@@ -11,7 +11,8 @@ const downloading = ref(false)
 const downloadProgress = ref(0)
 const downloadTotal = ref(0)
 const dismissed = ref(false)
-const checkError = ref(false)
+const errorMessage = ref('')
+const errorDismissed = ref(false)
 
 let pendingUpdate: Awaited<ReturnType<typeof check>> | null = null
 
@@ -26,7 +27,8 @@ async function checkForUpdates() {
     }
   } catch (e) {
     console.warn('Update check failed:', e)
-    checkError.value = true
+    errorMessage.value = "Couldn't check for updates. Try again later."
+    errorDismissed.value = false
   }
 }
 
@@ -35,6 +37,7 @@ async function startUpdate() {
   downloading.value = true
   downloadProgress.value = 0
   downloadTotal.value = 0
+  errorMessage.value = ''
 
   try {
     await pendingUpdate.downloadAndInstall((event) => {
@@ -60,12 +63,22 @@ async function startUpdate() {
   } catch (e) {
     console.error('Update install failed:', e)
     downloading.value = false
+    errorMessage.value = "Couldn't install the update. Try again or download it manually."
+    errorDismissed.value = false
   }
 }
 
 function dismiss() {
   dismissed.value = true
 }
+
+function dismissError() {
+  errorDismissed.value = true
+  errorMessage.value = ''
+}
+
+const showUpdate = computed(() => updateAvailable.value && !dismissed.value)
+const showError = computed(() => !!errorMessage.value && !errorDismissed.value)
 
 const progressPercent = computed(() => {
   if (downloadTotal.value === 0) return 0
@@ -94,7 +107,7 @@ onMounted(() => {
       leave-to-class="opacity-0 translate-y-4 scale-95"
     >
       <div
-        v-if="updateAvailable && !dismissed"
+        v-if="showUpdate"
         class="fixed bottom-4 left-4 z-100 w-95 pointer-events-auto"
       >
         <div
@@ -135,6 +148,15 @@ onMounted(() => {
               {{ updateNotes }}
             </p>
 
+            <!-- Install error inside update card -->
+            <div
+              v-if="showError && updateAvailable"
+              class="mt-3 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 pl-13"
+            >
+              <AlertCircle class="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+              <p class="text-xs text-destructive leading-relaxed">{{ errorMessage }}</p>
+            </div>
+
             <!-- Download progress -->
             <div v-if="downloading" class="mt-3 pl-13">
               <div class="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
@@ -162,7 +184,7 @@ onMounted(() => {
                 @click="startUpdate"
               >
                 <Download class="h-3.5 w-3.5" />
-                Update Now
+                {{ showError && updateAvailable ? 'Retry' : 'Update Now' }}
               </button>
               <button
                 class="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -171,6 +193,43 @@ onMounted(() => {
                 Later
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Standalone check-failure toast (no update available card) -->
+    <Transition
+      enter-active-class="transition-all duration-400 ease-out"
+      leave-active-class="transition-all duration-300 ease-in"
+      enter-from-class="opacity-0 translate-y-4 scale-95"
+      leave-to-class="opacity-0 translate-y-4 scale-95"
+    >
+      <div
+        v-if="showError && !updateAvailable"
+        class="fixed bottom-4 left-4 z-100 w-95 pointer-events-auto"
+      >
+        <div
+          class="relative overflow-hidden rounded-xl border border-destructive/20 bg-background/95 backdrop-blur-md shadow-2xl"
+        >
+          <div class="absolute top-0 left-0 right-0 h-1 bg-destructive/80" />
+          <div class="flex items-start gap-3 p-4 pt-5">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+              <AlertCircle class="h-5 w-5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-foreground">Update Check Failed</p>
+              <p class="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                {{ errorMessage }}
+              </p>
+            </div>
+            <button
+              class="shrink-0 rounded-md p-1 text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-all"
+              @click="dismissError"
+              aria-label="Dismiss update error"
+            >
+              <X class="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 {
   "productName": "RoK Tracker Suite",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identifier": "com.roktracker.suite",
   "build": {
     "beforeDevCommand": "cd ../gui_frontend && pnpm run dev",
@@ -26,7 +26,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
@@ -35,7 +37,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": ["binaries/scanner_sidecar"],
+    "externalBin": [
+      "binaries/scanner_sidecar"
+    ],
     "resources": {
       "../config.json": "config.json",
       "../deps/inputs": "deps/inputs",
