@@ -9,10 +9,21 @@
   <body>
     <script>
       (function () {
-        const stored = localStorage.getItem('vueuse-color-scheme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var stored = localStorage.getItem('vueuse-color-scheme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (stored === 'dark' || (!stored && prefersDark))
           document.documentElement.classList.add('dark');
+
+        // Restore premade theme class early to prevent flash
+        var validThemes = ['default', 'aurora', 'spectrum', 'glass', 'cyberpunk', 'luxe'];
+        var theme = localStorage.getItem('theme-name');
+        if (theme) {
+          try {
+            var parsed = JSON.parse(theme);
+            if (parsed && parsed !== 'default' && validThemes.indexOf(parsed) !== -1)
+              document.documentElement.classList.add('theme-' + parsed);
+          } catch(e) {}
+        }
       })();
     </script>
     <div id="app"></div>

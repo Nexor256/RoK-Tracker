@@ -232,8 +232,10 @@ import { formatNumber, formatCompactNumber, formatDuration } from '@/util/format
 const kingdomStore = useKingdomStore()
 
 const lastUpdate = computed(() => new Date(kingdomStore.status.current_time))
+// Anchor ETA to the last status update (not Date.now()) so it stays stable
+// between events — matches LastBatch's semantics.
 const expectedFinish = computed(
-  () => new Date(Date.now() + kingdomStore.status.remaining_sec * 1000),
+  () => new Date(lastUpdate.value.getTime() + kingdomStore.status.remaining_sec * 1000),
 )
 
 const lastUpdateFormatted = useDateFormat(lastUpdate, 'HH:mm:ss')
@@ -257,10 +259,16 @@ const econStats = computed(() => [
 const progressValue = computed(() => {
   if (kingdomStore.status.ch_verification_mode) {
     if (kingdomStore.status.ch_total_governors <= 0) return 0
-    return (kingdomStore.status.ch_current_governor / kingdomStore.status.ch_total_governors) * 100
+    return Math.min(
+      100,
+      (kingdomStore.status.ch_current_governor / kingdomStore.status.ch_total_governors) * 100,
+    )
   }
   if (kingdomStore.status.target_governor <= 0) return 0
-  return (kingdomStore.status.current_governor / kingdomStore.status.target_governor) * 100
+  return Math.min(
+    100,
+    (kingdomStore.status.current_governor / kingdomStore.status.target_governor) * 100,
+  )
 })
 
 const progressPercent = computed(() => {

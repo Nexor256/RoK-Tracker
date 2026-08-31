@@ -196,3 +196,16 @@ pub fn detect_emulators(sidecar: State<'_, SidecarManager>) -> Result<(), String
     send(&sidecar, "DetectEmulators", None)
 }
 
+/// Kill the sidecar and exit the process so a pending update can replace files.
+///
+/// `std::process::exit` never runs destructors, so `SidecarManager::drop`
+/// would be skipped and an orphaned `scanner_sidecar.exe` would keep a file
+/// lock that blocks the NSIS installer from replacing it.
+#[tauri::command]
+pub fn shutdown_for_update(sidecar: State<'_, SidecarManager>) {
+    sidecar.kill();
+    // Give the OS a moment to release the child's file handles
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    std::process::exit(0);
+}
+

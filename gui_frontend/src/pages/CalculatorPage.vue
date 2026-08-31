@@ -44,7 +44,7 @@
                     placeholder="0"
                     class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />
-                  <span class="text-[10px] text-muted-foreground">× {{ tier.multiplier }} pts each</span>
+                  <span class="text-[10px] text-muted-foreground">{{ KILL_POINT_HINTS[tier.tier] }} pts</span>
                 </div>
               </div>
             </CardContent>
@@ -56,7 +56,7 @@
               <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
                 <div v-for="tier in killTiers" :key="'r-' + tier.label" class="space-y-0.5">
                   <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{{ tier.label }}</p>
-                  <p class="text-sm font-semibold tabular-nums">{{ fmt(tier.kills * tier.multiplier) }}</p>
+                  <p class="text-sm font-semibold tabular-nums">{{ fmt(computeTierKillPoints(tier.tier, tier.kills)) }}</p>
                 </div>
                 <div class="space-y-0.5 border-l pl-4">
                   <p class="text-[10px] font-medium text-primary uppercase tracking-wider">Total</p>
@@ -333,38 +333,31 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Swords, Users, HeartPulse } from 'lucide-vue-next'
+import {
+  computeTierKillPoints,
+  computeTotalKillPoints,
+  KILL_POINT_HINTS,
+  KILL_TIER_LABELS,
+  fmt,
+  formatDuration,
+  type TroopTier,
+} from '@/lib/rok-calculator'
 
 const activeTab = ref('killpoints')
 
-// ─── Formatter ───
-function fmt(n: number): string {
-  if (!n || isNaN(n)) return '0'
-  return n.toLocaleString('en-US')
-}
-
-function formatDuration(totalMinutes: number): string {
-  if (!totalMinutes || totalMinutes <= 0) return '0m'
-  const d = Math.floor(totalMinutes / 1440)
-  const h = Math.floor((totalMinutes % 1440) / 60)
-  const m = Math.round(totalMinutes % 60)
-  const parts: string[] = []
-  if (d > 0) parts.push(`${d}d`)
-  if (h > 0) parts.push(`${h}h`)
-  if (m > 0 || parts.length === 0) parts.push(`${m}m`)
-  return parts.join(' ')
-}
-
 // ─── Kill Points ───
-const killTiers = reactive([
-  { label: 'T1', multiplier: 2, kills: 0 },
-  { label: 'T2', multiplier: 4, kills: 0 },
-  { label: 'T3', multiplier: 6, kills: 0 },
-  { label: 'T4', multiplier: 10, kills: 0 },
-  { label: 'T5', multiplier: 20, kills: 0 },
-])
+// Multipliers live in rok-calculator.ts and mirror the Python backend
+// (roktracker/kingdom/types/governor_data.py validate_kills).
+const killTiers = reactive(
+  KILL_TIER_LABELS.map((label, i) => ({
+    tier: (i + 1) as TroopTier,
+    label,
+    kills: 0,
+  })),
+)
 
 const totalKillPoints = computed(() =>
-  killTiers.reduce((sum, t) => sum + (t.kills || 0) * t.multiplier, 0)
+  computeTotalKillPoints(killTiers.map((t) => t.kills || 0)),
 )
 
 // ─── Troop Training ───

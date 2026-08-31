@@ -4,7 +4,6 @@ import pandas as pd
 import pathlib
 
 from roktracker.kingdom.types.governor_data import GovernorData
-from roktracker.utils.output_formats import OutputFormats
 from datetime import date
 
 from roktracker.utils.types.full_config import FormatsConfig

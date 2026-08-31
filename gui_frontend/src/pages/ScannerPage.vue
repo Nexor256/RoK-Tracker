@@ -44,8 +44,8 @@
           </div>
           <div class="flex-1 min-w-0">
             <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Scanner Type</span>
-            <Select v-model="selectedBatchType">
-              <SelectTrigger class="mt-1 w-56">
+            <Select v-model="selectedBatchType" :disabled="anyBatchScanRunning">
+              <SelectTrigger class="mt-1 w-56" :title="anyBatchScanRunning ? 'Stop the running scan before switching type' : undefined">
                 <SelectValue placeholder="Select scanner" />
               </SelectTrigger>
               <SelectContent>
@@ -78,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, markRaw } from 'vue'
+import { ref, computed, markRaw } from 'vue'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -86,11 +86,21 @@ import { Crown, Sprout, Award, Shield, Layers } from 'lucide-vue-next'
 import KingdomScanner from '@/components/KingdomScanner.vue'
 import BatchScanner from '@/components/BatchScanner.vue'
 import type { BatchType } from '@/schema/BatchType'
+import { useAllianceStore } from '@/stores/alliance-store'
+import { useHonorStore } from '@/stores/honor-store'
+import { useSeedStore } from '@/stores/seed-store'
 
 defineOptions({ name: 'ScannerPage' })
 
 const tab = ref('kingdom')
 const selectedBatchType = ref<BatchType['type']>('Seed')
+
+// Switching type remounts BatchScanner (via :key), which would hide the
+// running scan's controls — lock the selector while any batch scan runs.
+const anyBatchScanRunning = computed(
+  () =>
+    useAllianceStore().scanRunning || useHonorStore().scanRunning || useSeedStore().scanRunning,
+)
 
 const batchTypeStyles = {
   Seed: {

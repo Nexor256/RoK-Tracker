@@ -1,8 +1,8 @@
 import datetime
 import logging
 import re
+from pathvalidate import sanitize_filename
 from roktracker.kingdom.pandas_handler import PandasHandler
-from roktracker.utils.output_formats import OutputFormats
 import roktracker.utils.rok_ui_positions as rok_ui
 import shutil
 import time
@@ -1068,7 +1068,7 @@ class KingdomScanner:
         reconstruct_fails: bool,
         validate_power: bool,
         power_threshold: int,
-        formats: OutputFormats,
+        formats: FormatsConfig,
     ):
         self.state_callback("Initializing")
         self.adb_client.start_adb()
@@ -1087,7 +1087,10 @@ class KingdomScanner:
         else:
             file_name_prefix = "TOP"
 
-        filename = f"{file_name_prefix}{amount - j}-{self.start_date}-{kingdom}-[{self.run_id}]"
+        # Sanitize the user-supplied kingdom/scan name before it reaches the
+        # filesystem (the console flow validates earlier; the GUI flow does not)
+        safe_kingdom = str(sanitize_filename(kingdom)) if kingdom else ""
+        filename = f"{file_name_prefix}{amount - j}-{self.start_date}-{safe_kingdom}-[{self.run_id}]"
         data_handler = PandasHandler(self.scan_path, filename, formats)
 
         # The loop in TOP XXX Governors in kingdom - It works both for power and killpoints Rankings
@@ -1231,6 +1234,14 @@ class KingdomScanner:
 
         self.adb_client.kill_adb()  # make sure to clean up adb server
         self.cleanup()
+
+        # Remove leftover single-governor temp captures from this run
+        for temp_name in ("gov_info.png", "kills_tier.png"):
+            try:
+                (self.img_path / temp_name).unlink(missing_ok=True)
+            except OSError as e:
+                logger.warning("Could not delete temp file %s: %s", temp_name, e)
+
         self.state_callback("Scan finished")
         return
 

@@ -124,7 +124,8 @@
           size="sm"
           :variant="startBtnVariant"
           @click="handleMainButtonClick"
-          :disabled="startButtonDisabled"
+          :disabled="startButtonDisabled || blockedByOtherScan"
+          :title="blockedByOtherScan ? 'Another scan is running' : undefined"
         >
           {{ startButtonDisabled ? 'Stopping...' : scanRunning ? 'Stop Scan' : 'Start Scan' }}
         </Button>
@@ -134,175 +135,97 @@
     <!-- Middle Column: Form Settings -->
     <div class="flex flex-col gap-6 min-h-0 overflow-y-auto pr-1">
       <div class="flex flex-col gap-6">
-        <!-- General -->
-        <div class="grid grid-cols-2 gap-4">
-          <Input
-            v-model="configStore.config.scan.kingdom_name"
-            label="Scan name"
-            hint="Prepended to file name"
-            :disabled="scanRunning"
-          />
-
-          <div class="space-y-1.5 flex flex-col justify-end">
-            <label class="text-sm font-medium leading-none">Output formats</label>
-            <div class="flex gap-2">
-              <Button
-                v-for="fmt in outputFormats"
-                :key="fmt.value"
-                :variant="isFormatSelected(fmt) ? 'default' : 'outline'"
-                size="sm"
-                @click="toggleFormat(fmt)"
-                :disabled="scanRunning"
-                class="text-xs"
-              >
-                {{ fmt.display }}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <Input
-            v-if="configStore.config.general.emulator === 'bluestacks'"
-            v-model="configStore.config.general.bluestacks.name"
-            label="Emulator name"
-            hint="BlueStacks instance name"
-            :disabled="scanRunning"
-          />
-          <Input
-            v-model="configStore.config.general.adb_port"
-            label="ADB Port"
-            hint="Autofilled if found"
-            :disabled="scanRunning"
-          />
-        </div>
-
-        <!-- Governors to scan full width -->
-        <Input
-          type="number"
-          v-model.number="configStore.config.scan.people_to_scan"
-          label="Governors to scan"
-          hint="Amount of people to scan"
-          :disabled="scanRunning"
-        />
-
-        <!-- Toggles grid -->
-        <div
-          class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/50 dark:bg-muted/10 backdrop-blur-md p-3 border border-border/60 dark:border-border/50 shadow-sm"
-        >
-          <Switch
-            :checked="configStore.config.scan.resume"
-            @update:checked="configStore.config.scan.resume = $event"
-            label="Start at 4th governor"
-            :disabled="scanRunning"
-          />
-          <Switch
-            :checked="configStore.config.scan.advanced_scroll"
-            @update:checked="configStore.config.scan.advanced_scroll = $event"
-            label="Better Scrolling"
-            :disabled="scanRunning"
-          />
-          <Switch
-            :checked="configStore.config.scan.track_inactives"
-            @update:checked="configStore.config.scan.track_inactives = $event"
-            label="Track inactives"
-            :disabled="scanRunning"
-          />
-          <Switch
-            :checked="configStore.config.scan.validate_kills"
-            @update:checked="configStore.config.scan.validate_kills = $event"
-            label="Validate kills"
-            :disabled="scanRunning"
-          />
-          <Switch
-            :checked="configStore.config.scan.reconstruct_kills"
-            @update:checked="configStore.config.scan.reconstruct_kills = $event"
-            label="Reconstruct kills"
-            :disabled="scanRunning || !configStore.config.scan.validate_kills"
-          />
-        </div>
-
-        <!-- Power Validation Row -->
-        <div class="flex items-center gap-4 mt-1">
-          <div class="w-1/3">
-            <Switch
-              :checked="configStore.config.scan.validate_power"
-              @update:checked="configStore.config.scan.validate_power = $event"
-              label="Validate Power"
-              :disabled="scanRunning"
-            />
-          </div>
-          <div class="w-2/3">
-            <Input
-              type="number"
-              v-model.number="configStore.config.scan.power_threshold"
-              label="Power tolerance"
-              hint="Tolerance threshold"
-              :disabled="scanRunning || !configStore.config.scan.validate_power"
-            />
-          </div>
-        </div>
-
-        <!-- City Hall Verification -->
-        <div
-          class="p-3 border border-border/60 dark:border-border/50 rounded-md bg-muted/50 dark:bg-muted/10 backdrop-blur-md mt-1 shadow-sm transition-all duration-200"
-          :class="{ 'opacity-60': !configStore.config.scan.check_cityhall }"
-        >
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">City Hall Verification</span>
-            <Switch
-              :checked="configStore.config.scan.check_cityhall"
-              @update:checked="configStore.config.scan.check_cityhall = $event"
-              :disabled="scanRunning"
-            />
-          </div>
-          <transition
-            enter-active-class="transition-all duration-200 ease-out"
-            leave-active-class="transition-all duration-150 ease-in"
-            enter-from-class="opacity-0 max-h-0"
-            enter-to-class="opacity-100 max-h-24"
-            leave-from-class="opacity-100 max-h-24"
-            leave-to-class="opacity-0 max-h-0"
+        <ScanSettingsFields :disabled="scanRunning">
+          <!-- Toggles grid -->
+          <div
+            class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/50 dark:bg-muted/10 backdrop-blur-md p-3 border border-border/60 dark:border-border/50 shadow-sm"
           >
-            <div v-if="configStore.config.scan.check_cityhall" class="mt-3 overflow-hidden">
-              <Input
-                v-model.number="configStore.config.scan.ch_auto_assign_power"
-                type="number"
-                label="Auto-Assign Power Threshold"
-                hint="CH level auto-assigned above this power"
+            <Switch
+              :checked="configStore.config.scan.resume"
+              @update:checked="configStore.config.scan.resume = $event"
+              label="Start at 4th governor"
+              :disabled="scanRunning"
+            />
+            <Switch
+              :checked="configStore.config.scan.advanced_scroll"
+              @update:checked="configStore.config.scan.advanced_scroll = $event"
+              label="Better Scrolling"
+              :disabled="scanRunning"
+            />
+            <Switch
+              :checked="configStore.config.scan.track_inactives"
+              @update:checked="configStore.config.scan.track_inactives = $event"
+              label="Track inactives"
+              :disabled="scanRunning"
+            />
+            <Switch
+              :checked="configStore.config.scan.validate_kills"
+              @update:checked="configStore.config.scan.validate_kills = $event"
+              label="Validate kills"
+              :disabled="scanRunning"
+            />
+            <Switch
+              :checked="configStore.config.scan.reconstruct_kills"
+              @update:checked="configStore.config.scan.reconstruct_kills = $event"
+              label="Reconstruct kills"
+              :disabled="scanRunning || !configStore.config.scan.validate_kills"
+            />
+          </div>
+
+          <!-- Power Validation Row -->
+          <div class="flex items-center gap-4 mt-1">
+            <div class="w-1/3">
+              <Switch
+                :checked="configStore.config.scan.validate_power"
+                @update:checked="configStore.config.scan.validate_power = $event"
+                label="Validate Power"
                 :disabled="scanRunning"
               />
             </div>
-          </transition>
-        </div>
+            <div class="w-2/3">
+              <Input
+                type="number"
+                v-model.number="configStore.config.scan.power_threshold"
+                label="Power tolerance"
+                hint="Tolerance threshold"
+                :disabled="scanRunning || !configStore.config.scan.validate_power"
+              />
+            </div>
+          </div>
 
-        <!-- Delays Row -->
-        <div class="grid grid-cols-3 gap-2 xl:gap-4">
-          <Input
-            type="number"
-            step="0.1"
-            v-model.number="configStore.config.scan.timings.info_close"
-            label="Info delay (s)"
-            hint="Wait after more info"
-            :disabled="scanRunning"
-          />
-          <Input
-            type="number"
-            step="0.1"
-            v-model.number="configStore.config.scan.timings.gov_close"
-            label="Gov delay (s)"
-            hint="Wait after governor"
-            :disabled="scanRunning"
-          />
-          <Input
-            type="number"
-            step="0.1"
-            v-model.number="configStore.config.scan.timings.max_random"
-            label="Random delay (s)"
-            hint="Max added variance"
-            :disabled="scanRunning"
-          />
-        </div>
+          <!-- City Hall Verification -->
+          <div
+            class="p-3 border border-border/60 dark:border-border/50 rounded-md bg-muted/50 dark:bg-muted/10 backdrop-blur-md mt-1 shadow-sm transition-all duration-200"
+            :class="{ 'opacity-60': !configStore.config.scan.check_cityhall }"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium">City Hall Verification</span>
+              <Switch
+                :checked="configStore.config.scan.check_cityhall"
+                @update:checked="configStore.config.scan.check_cityhall = $event"
+                :disabled="scanRunning"
+              />
+            </div>
+            <transition
+              enter-active-class="transition-all duration-200 ease-out"
+              leave-active-class="transition-all duration-150 ease-in"
+              enter-from-class="opacity-0 max-h-0"
+              enter-to-class="opacity-100 max-h-24"
+              leave-from-class="opacity-100 max-h-24"
+              leave-to-class="opacity-0 max-h-0"
+            >
+              <div v-if="configStore.config.scan.check_cityhall" class="mt-3 overflow-hidden">
+                <Input
+                  v-model.number="configStore.config.scan.ch_auto_assign_power"
+                  type="number"
+                  label="Auto-Assign Power Threshold"
+                  hint="CH level auto-assigned above this power"
+                  :disabled="scanRunning"
+                />
+              </div>
+            </transition>
+          </div>
+        </ScanSettingsFields>
       </div>
     </div>
 
@@ -354,24 +277,30 @@
       </AlertDialogContent>
     </AlertDialog>
 
-    <AlertDialog :open="confirmDialogOpen" @update:open="onConfirmOpenChange">
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Confirm</AlertDialogTitle>
-          <AlertDialogDescription>Do you want to continue?</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel @click="handleConfirmResponse(false)">No</AlertDialogCancel>
-          <AlertDialogAction @click="handleConfirmResponse(true)">Yes</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      :open="confirmDialogOpen"
+      title="Continue Scan?"
+      :message="confirmMessage || 'Do you want to continue?'"
+      confirm-text="Yes"
+      cancel-text="No"
+      @confirm="handleConfirmResponse(true)"
+      @update:open="onConfirmOpenChange"
+    />
+
+    <ConfirmDialog
+      v-model:open="stopConfirmOpen"
+      title="Stop Scan"
+      message="Stop the current scan? Governors scanned since the last checkpoint will not be saved."
+      confirm-text="Stop Scan"
+      cancel-text="Keep Scanning"
+      destructive
+      @confirm="confirmStop"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import { storeToRefs } from 'pinia'
 import { Trash2, ChevronDown, ChevronRight, FoldVertical, UnfoldVertical } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -398,6 +327,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import LastGovernor from './LastGovernor.vue'
 import ScanStatus from './ScanStatus.vue'
+import ScanSettingsFields from './ScanSettingsFields.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import { useKingdomStore } from '@/stores/kingdom-store'
 import { useConfigStore } from '@/stores/config-store'
 import { toast } from '@/components/ui/toast'
@@ -407,16 +338,10 @@ import type { ScanPreset } from '@/schema/ScanPreset'
 
 import * as ipc from '@/lib/tauriClient'
 import { onSidecarEvent } from '@/lib/tauriClient'
+import { useScanControl } from '@/composables/useScanControl'
 
 const kingdomStore = useKingdomStore()
 const configStore = useConfigStore()
-const { scanRunning, startButtonDisabled } = storeToRefs(kingdomStore)
-
-const startBtnVariant = computed(() => {
-  if (startButtonDisabled.value) return 'secondary'
-  if (scanRunning.value) return 'destructive'
-  return 'default'
-})
 
 // ---- Preset management ----
 const selectedPresetName = ref(configStore.availableScanPresets[0]?.name ?? '')
@@ -426,7 +351,9 @@ const selectedPreset = computed(() =>
 
 watch(selectedPresetName, () => {
   if (selectedPreset.value) {
-    configStore.selectedKingdomOptions.selections = selectedPreset.value.selections
+    // Copy — assigning by reference would make checkbox toggles mutate the
+    // stored preset itself, and auto-save would persist that corruption.
+    configStore.selectedKingdomOptions.selections = [...selectedPreset.value.selections]
   }
 })
 
@@ -440,13 +367,31 @@ const handleSavePreset = () => {
 }
 
 const confirmSavePreset = () => {
+  const name = newPresetName.value.trim()
+  if (!name) return
+  if (configStore.availableScanPresets.some((p) => p.name === name)) {
+    toast({
+      title: 'Preset Already Exists',
+      description: `A preset named "${name}" already exists. Pick another name.`,
+      variant: 'destructive',
+    })
+    return
+  }
   const newPreset: ScanPreset = {
-    name: newPresetName.value,
-    selections: configStore.selectedKingdomOptions.selections,
+    name,
+    // Copy — sharing the live selections array would alias the preset to
+    // future checkbox changes.
+    selections: [...configStore.selectedKingdomOptions.selections],
   }
   configStore.availableScanPresets.push(newPreset)
   selectedPresetName.value = newPreset.name
-  ipc.saveScanPresets(configStore.availableScanPresets)
+  ipc.saveScanPresets(configStore.availableScanPresets).catch((e) => {
+    toast({
+      title: 'Preset Save Failed',
+      description: String(e),
+      variant: 'destructive',
+    })
+  })
   saveDialogOpen.value = false
 }
 
@@ -462,12 +407,15 @@ const confirmDeletePreset = () => {
     (p) => p.name !== selectedPreset.value?.name,
   )
   selectedPresetName.value = ''
-  ipc.saveScanPresets(configStore.availableScanPresets)
+  ipc.saveScanPresets(configStore.availableScanPresets).catch((e) => {
+    toast({
+      title: 'Preset Save Failed',
+      description: String(e),
+      variant: 'destructive',
+    })
+  })
   deleteDialogOpen.value = false
 }
-
-import { useOutputFormats } from '@/composables/useOutputFormats'
-const { outputFormats, isFormatSelected, toggleFormat } = useOutputFormats()
 
 // ---- Tree (info to scan) ----
 interface TreeNode {
@@ -570,42 +518,56 @@ const collapseAll = () => {
 }
 
 // ---- Scan control ----
+const { scanRunning, startButtonDisabled, blockedByOtherScan, startBtnVariant, attemptStart, attemptStop } =
+  useScanControl(kingdomStore, {
+    validate: () => {
+      if (configStore.config.scan.people_to_scan <= 0) {
+        toast({
+          title: 'Invalid Input',
+          description: 'Governors to scan must be > 0',
+          variant: 'destructive',
+        })
+        return false
+      }
+      if (configStore.selectedKingdomOptions.selections.length === 0) {
+        toast({
+          title: 'No Fields Selected',
+          description: 'Select at least one field to scan',
+          variant: 'destructive',
+        })
+        return false
+      }
+      return true
+    },
+    start: async () => {
+      // Use the selected preset, or build one from current checkbox selections
+      const preset: ScanPreset = {
+        name: selectedPreset.value?.name ?? 'Custom',
+        selections: [...configStore.selectedKingdomOptions.selections],
+      }
+      await ipc.startKingdomScan(configStore.config, preset)
+    },
+    stop: () => ipc.stopKingdomScan(),
+  })
+
+const stopConfirmOpen = ref(false)
+
 const handleMainButtonClick = () => {
   if (!scanRunning.value) {
-    if (configStore.config.scan.people_to_scan <= 0) {
-      toast({
-        title: 'Invalid Input',
-        description: 'Governors to scan must be > 0',
-        variant: 'destructive',
-      })
-      return
-    }
-    if (configStore.selectedKingdomOptions.selections.length === 0) {
-      toast({
-        title: 'No Fields Selected',
-        description: 'Select at least one field to scan',
-        variant: 'destructive',
-      })
-      return
-    }
-    // Use the selected preset, or build one from current checkbox selections
-    const preset: ScanPreset = {
-      name: selectedPreset.value?.name ?? 'Custom',
-      selections: [...configStore.selectedKingdomOptions.selections],
-    }
-
-    // Auto-save config so scanner-page tweaks aren't lost on crash
-    ipc.saveConfig(configStore.config).catch(() => {})
-    ipc.startKingdomScan(configStore.config, preset)
-    scanRunning.value = true
+    void attemptStart()
   } else {
-    ipc.stopKingdomScan()
-    startButtonDisabled.value = true
+    stopConfirmOpen.value = true
   }
+}
+
+const confirmStop = () => {
+  stopConfirmOpen.value = false
+  void attemptStop()
 }
 
 // ---- IPC callbacks ----
 const confirmDialogOpen = ref(false)
+const confirmMessage = ref('')
 let awaitingConfirm = false
 
 const handleConfirmResponse = (confirmed: boolean) => {
@@ -655,14 +617,15 @@ const stateUpdate = (state: string) => {
   kingdomStore.statusMessage = state
 }
 
-const askConfirm = (_message: string) => {
+const askConfirm = (message: string) => {
   awaitingConfirm = true
+  confirmMessage.value = message
   confirmDialogOpen.value = true
 }
 
 const scanFinished = () => {
-  scanRunning.value = false
-  startButtonDisabled.value = false
+  kingdomStore.scanRunning = false
+  kingdomStore.startButtonDisabled = false
 }
 
 // ---- Sidecar event listeners ----

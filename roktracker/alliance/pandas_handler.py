@@ -5,7 +5,6 @@ import pandas as pd
 import pathlib
 
 from roktracker.utils.general import to_int_or
-from roktracker.utils.output_formats import OutputFormats
 from datetime import date
 
 from roktracker.utils.types.batch_scanner.governor_data import GovernorData

@@ -116,10 +116,12 @@ const expectedFinishFormatted = useDateFormat(expectedFinish, 'HH:mm:ss')
 
 const progressValue = computed(() => {
   if (props.batchStatus.target_governor <= 0) return 0
-  return (
+  // Cap at 100 — the final page's page*per-page count overshoots the target
+  return Math.min(
+    100,
     ((props.batchStatus.current_page * props.batchStatus.govs_per_page) /
       props.batchStatus.target_governor) *
-    100
+      100,
   )
 })
 

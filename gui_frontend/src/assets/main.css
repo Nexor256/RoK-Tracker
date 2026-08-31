@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *));
 
 /*
  * shadcn-vue CSS variables — light & dark themes

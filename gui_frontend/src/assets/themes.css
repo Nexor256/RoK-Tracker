@@ -1,0 +1,782 @@
+/*
+ * ══════════════════════════════════════════════════════════════
+ *  Premade Themes — each class on <html> transforms the entire UI
+ *  beyond just colors: radius, shadows, backgrounds, fonts, animations
+ * ══════════════════════════════════════════════════════════════
+ */
+
+/* ─── AURORA / NORTHERN LIGHTS ────────────────────────────── */
+
+html.theme-aurora {
+  --radius: 1.25rem;
+}
+
+html.theme-aurora:not(.dark) {
+  --background: oklch(0.92 0.02 200);
+  --foreground: oklch(0.12 0.03 260);
+  --card: oklch(0.95 0.012 220 / 0.7);
+  --card-foreground: oklch(0.12 0.03 260);
+  --popover: oklch(0.95 0.012 220 / 0.85);
+  --popover-foreground: oklch(0.12 0.03 260);
+  --primary: oklch(0.65 0.2 180);
+  --primary-foreground: oklch(0.99 0.005 180);
+  --secondary: oklch(0.9 0.03 280);
+  --secondary-foreground: oklch(0.2 0.03 280);
+  --muted: oklch(0.9 0.02 220);
+  --muted-foreground: oklch(0.45 0.03 240);
+  --accent: oklch(0.88 0.05 300);
+  --accent-foreground: oklch(0.2 0.03 300);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.98 0.01 27);
+  --border: oklch(0.85 0.025 220 / 0.6);
+  --input: oklch(0.88 0.02 220);
+  --input-background: oklch(0.94 0.015 220 / 0.6);
+  --overlay: oklch(0.1 0.02 260 / 0.4);
+  --ring: oklch(0.65 0.2 180);
+
+  --sidebar-background: oklch(0.93 0.015 240 / 0.7);
+  --sidebar-foreground: oklch(0.4 0.03 260);
+  --sidebar-primary: oklch(0.15 0.03 260);
+  --sidebar-primary-foreground: oklch(0.98 0.005 180);
+  --sidebar-accent: oklch(0.88 0.04 300 / 0.5);
+  --sidebar-accent-foreground: oklch(0.15 0.03 260);
+  --sidebar-border: oklch(0.84 0.025 240 / 0.5);
+  --sidebar-ring: oklch(0.65 0.2 180);
+}
+
+html.theme-aurora.dark {
+  --background: oklch(0.08 0.025 260);
+  --foreground: oklch(0.95 0.01 200);
+  --card: oklch(0.14 0.02 260 / 0.65);
+  --card-foreground: oklch(0.95 0.01 200);
+  --popover: oklch(0.14 0.02 260 / 0.8);
+  --popover-foreground: oklch(0.95 0.01 200);
+  --primary: oklch(0.72 0.22 175);
+  --primary-foreground: oklch(0.05 0.015 260);
+  --secondary: oklch(0.2 0.025 280);
+  --secondary-foreground: oklch(0.95 0.01 200);
+  --muted: oklch(0.18 0.02 260);
+  --muted-foreground: oklch(0.65 0.02 220);
+  --accent: oklch(0.25 0.035 300);
+  --accent-foreground: oklch(0.95 0.01 200);
+  --destructive: oklch(0.5 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+  --border: oklch(0.25 0.025 260 / 0.5);
+  --input: oklch(0.22 0.02 260);
+  --input-background: oklch(0.1 0.015 260 / 0.6);
+  --overlay: oklch(0.02 0 0 / 0.8);
+  --ring: oklch(0.72 0.22 175);
+
+  --sidebar-background: oklch(0.1 0.02 260 / 0.7);
+  --sidebar-foreground: oklch(0.7 0.015 220);
+  --sidebar-primary: oklch(0.72 0.22 175);
+  --sidebar-primary-foreground: oklch(0.05 0.015 260);
+  --sidebar-accent: oklch(0.2 0.025 300 / 0.5);
+  --sidebar-accent-foreground: oklch(0.7 0.015 220);
+  --sidebar-border: oklch(0.22 0.02 260 / 0.5);
+  --sidebar-ring: oklch(0.72 0.22 175);
+}
+
+html.theme-aurora body {
+  font-family: 'Outfit Variable', 'Outfit', system-ui, -apple-system, sans-serif;
+}
+
+/* Aurora background: flowing gradient mesh */
+html.theme-aurora .app-dot-grid {
+  background-image: none;
+  mask-image: none;
+}
+
+html.theme-aurora:not(.dark) .app-dot-grid {
+  background: linear-gradient(
+    135deg,
+    oklch(0.85 0.08 180 / 0.3) 0%,
+    oklch(0.88 0.06 260 / 0.2) 30%,
+    oklch(0.85 0.07 320 / 0.25) 60%,
+    oklch(0.9 0.05 150 / 0.2) 100%
+  );
+  mask-image: none;
+}
+
+html.theme-aurora.dark .app-dot-grid {
+  background: linear-gradient(
+    135deg,
+    oklch(0.25 0.1 180 / 0.3) 0%,
+    oklch(0.2 0.08 260 / 0.25) 30%,
+    oklch(0.22 0.09 320 / 0.2) 60%,
+    oklch(0.25 0.07 150 / 0.25) 100%
+  );
+  mask-image: none;
+}
+
+/* Aurora ambient orbs — vivid teal / purple / magenta */
+html.theme-aurora .ambient-orb:nth-child(2) {
+  background: oklch(0.7 0.2 175 / 0.2) !important;
+}
+html.theme-aurora .ambient-orb:nth-child(3) {
+  background: oklch(0.6 0.2 290 / 0.18) !important;
+}
+html.theme-aurora .ambient-orb:nth-child(4) {
+  background: oklch(0.65 0.18 340 / 0.15) !important;
+}
+html.theme-aurora.dark .ambient-orb:nth-child(2) {
+  background: oklch(0.5 0.18 175 / 0.15) !important;
+}
+html.theme-aurora.dark .ambient-orb:nth-child(3) {
+  background: oklch(0.4 0.18 290 / 0.12) !important;
+}
+html.theme-aurora.dark .ambient-orb:nth-child(4) {
+  background: oklch(0.45 0.15 340 / 0.1) !important;
+}
+
+/* Aurora cards — extra glass + glowing edge */
+html.theme-aurora .glass-card {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+html.theme-aurora:not(.dark) .glass-card {
+  box-shadow:
+    0 0 1px oklch(0.7 0.15 180 / 0.2),
+    0 4px 24px oklch(0.5 0.1 260 / 0.08);
+}
+html.theme-aurora.dark .glass-card {
+  box-shadow:
+    0 0 1px oklch(0.6 0.15 180 / 0.25),
+    0 1px 0 oklch(1 0 0 / 0.04) inset,
+    0 4px 24px oklch(0 0 0 / 0.3);
+}
+
+/* Aurora nav active — teal glow bar */
+html.theme-aurora .nav-link--active::before {
+  background: oklch(0.7 0.2 175);
+  box-shadow: 0 0 12px oklch(0.6 0.2 175 / 0.5);
+}
+
+/* Aurora ambient animation — slower, dreamier */
+html.theme-aurora .ambient-orb {
+  animation-duration: 25s;
+}
+
+
+/* ─── SPECTRUM / MULTI-PALETTE ────────────────────────────── */
+/*
+ * A multi-color palette theme where different UI areas use distinct,
+ * harmonious colors: violet primary, teal accent, coral destructive,
+ * indigo sidebar, golden highlights. Each color has a purpose.
+ */
+
+html.theme-spectrum {
+  --radius: 0.875rem;
+}
+
+html.theme-spectrum:not(.dark) {
+  /* Violet primary, teal accent, warm neutrals */
+  --background: oklch(0.96 0.01 280);
+  --foreground: oklch(0.12 0.02 270);
+  --card: oklch(0.98 0.005 275 / 0.75);
+  --card-foreground: oklch(0.12 0.02 270);
+  --popover: oklch(0.98 0.005 275 / 0.85);
+  --popover-foreground: oklch(0.12 0.02 270);
+  --primary: oklch(0.55 0.25 290);
+  --primary-foreground: oklch(0.99 0.005 290);
+  --secondary: oklch(0.92 0.02 190);
+  --secondary-foreground: oklch(0.18 0.03 190);
+  --muted: oklch(0.93 0.01 270);
+  --muted-foreground: oklch(0.45 0.02 270);
+  --accent: oklch(0.7 0.14 185);
+  --accent-foreground: oklch(0.12 0.03 185);
+  --destructive: oklch(0.6 0.2 20);
+  --destructive-foreground: oklch(0.99 0.005 20);
+  --border: oklch(0.88 0.015 270 / 0.5);
+  --input: oklch(0.9 0.01 270);
+  --input-background: oklch(0.97 0.005 275 / 0.5);
+  --overlay: oklch(0.15 0.02 270 / 0.4);
+  --ring: oklch(0.55 0.25 290);
+
+  /* Indigo-tinted sidebar */
+  --sidebar-background: oklch(0.18 0.04 275 / 0.95);
+  --sidebar-foreground: oklch(0.82 0.015 270);
+  --sidebar-primary: oklch(0.82 0.015 270);
+  --sidebar-primary-foreground: oklch(0.18 0.04 275);
+  --sidebar-accent: oklch(0.25 0.04 290);
+  --sidebar-accent-foreground: oklch(0.9 0.01 270);
+  --sidebar-border: oklch(0.25 0.03 275 / 0.4);
+  --sidebar-ring: oklch(0.65 0.2 290);
+}
+
+html.theme-spectrum.dark {
+  --background: oklch(0.07 0.015 270);
+  --foreground: oklch(0.93 0.01 270);
+  --card: oklch(0.12 0.015 270 / 0.7);
+  --card-foreground: oklch(0.93 0.01 270);
+  --popover: oklch(0.12 0.015 270 / 0.85);
+  --popover-foreground: oklch(0.93 0.01 270);
+  --primary: oklch(0.72 0.22 290);
+  --primary-foreground: oklch(0.07 0.01 290);
+  --secondary: oklch(0.2 0.02 190);
+  --secondary-foreground: oklch(0.88 0.015 190);
+  --muted: oklch(0.16 0.012 270);
+  --muted-foreground: oklch(0.62 0.015 270);
+  --accent: oklch(0.65 0.14 185);
+  --accent-foreground: oklch(0.07 0.02 185);
+  --destructive: oklch(0.55 0.2 20);
+  --destructive-foreground: oklch(0.98 0.005 20);
+  --border: oklch(0.22 0.018 270 / 0.5);
+  --input: oklch(0.2 0.015 270);
+  --input-background: oklch(0.09 0.01 270 / 0.6);
+  --overlay: oklch(0.02 0 0 / 0.85);
+  --ring: oklch(0.72 0.22 290);
+
+  /* Dark indigo sidebar */
+  --sidebar-background: oklch(0.09 0.025 275 / 0.95);
+  --sidebar-foreground: oklch(0.7 0.015 270);
+  --sidebar-primary: oklch(0.72 0.22 290);
+  --sidebar-primary-foreground: oklch(0.07 0.01 270);
+  --sidebar-accent: oklch(0.16 0.025 290);
+  --sidebar-accent-foreground: oklch(0.8 0.012 270);
+  --sidebar-border: oklch(0.18 0.02 275 / 0.4);
+  --sidebar-ring: oklch(0.72 0.22 290);
+}
+
+html.theme-spectrum body {
+  font-family: 'Outfit Variable', 'Outfit', system-ui, -apple-system, sans-serif;
+}
+
+/* Spectrum background: multi-color gradient mesh */
+html.theme-spectrum .app-dot-grid {
+  background-image: none;
+  mask-image: none;
+}
+html.theme-spectrum:not(.dark) .app-dot-grid {
+  background: linear-gradient(
+    140deg,
+    oklch(0.92 0.06 290 / 0.25) 0%,
+    oklch(0.94 0.04 185 / 0.2) 30%,
+    oklch(0.93 0.05 20 / 0.15) 60%,
+    oklch(0.95 0.03 60 / 0.15) 100%
+  );
+}
+html.theme-spectrum.dark .app-dot-grid {
+  background: linear-gradient(
+    140deg,
+    oklch(0.15 0.04 290 / 0.25) 0%,
+    oklch(0.12 0.035 185 / 0.2) 30%,
+    oklch(0.14 0.04 20 / 0.15) 60%,
+    oklch(0.12 0.03 60 / 0.15) 100%
+  );
+}
+
+/* Spectrum ambient orbs — each is a different color from the palette */
+html.theme-spectrum .ambient-orb:nth-child(2) {
+  background: oklch(0.6 0.2 290 / 0.15) !important;
+}
+html.theme-spectrum .ambient-orb:nth-child(3) {
+  background: oklch(0.65 0.15 185 / 0.12) !important;
+}
+html.theme-spectrum .ambient-orb:nth-child(4) {
+  background: oklch(0.6 0.15 20 / 0.1) !important;
+}
+html.theme-spectrum.dark .ambient-orb:nth-child(2) {
+  background: oklch(0.4 0.15 290 / 0.1) !important;
+}
+html.theme-spectrum.dark .ambient-orb:nth-child(3) {
+  background: oklch(0.4 0.12 185 / 0.08) !important;
+}
+html.theme-spectrum.dark .ambient-orb:nth-child(4) {
+  background: oklch(0.35 0.12 20 / 0.06) !important;
+}
+
+/* Spectrum cards — rainbow gradient border shimmer */
+html.theme-spectrum .glass-card {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid transparent !important;
+  background-clip: padding-box;
+  position: relative;
+}
+html.theme-spectrum .glass-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    oklch(0.6 0.2 290 / 0.25),
+    oklch(0.65 0.15 185 / 0.2),
+    oklch(0.6 0.15 20 / 0.15),
+    oklch(0.7 0.12 60 / 0.2),
+    oklch(0.6 0.2 290 / 0.25)
+  );
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: spectrum-border-shift 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+html.theme-spectrum:not(.dark) .glass-card {
+  box-shadow:
+    0 1px 2px oklch(0.5 0.06 290 / 0.06),
+    0 4px 20px oklch(0.5 0.04 270 / 0.06);
+}
+html.theme-spectrum.dark .glass-card {
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.03) inset,
+    0 4px 24px oklch(0 0 0 / 0.3);
+}
+
+@keyframes spectrum-border-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Spectrum sidebar — contrast dark indigo */
+html.theme-spectrum:not(.dark) .app-sidebar {
+  box-shadow: 1px 0 16px oklch(0.2 0.04 275 / 0.15);
+}
+html.theme-spectrum:not(.dark) .app-sidebar .nav-link {
+  color: oklch(0.75 0.015 270);
+}
+html.theme-spectrum:not(.dark) .app-sidebar .nav-link:hover {
+  color: oklch(0.9 0.01 270);
+}
+
+/* Spectrum nav active — violet glow */
+html.theme-spectrum .nav-link--active::before {
+  background: linear-gradient(180deg, oklch(0.6 0.22 290), oklch(0.65 0.15 185));
+  box-shadow: 0 0 10px oklch(0.55 0.2 290 / 0.4);
+}
+
+/* Spectrum ambient animation */
+html.theme-spectrum .ambient-orb {
+  animation-duration: 20s;
+}
+
+
+/* ─── GLASSMORPHISM PRO ───────────────────────────────────── */
+
+html.theme-glass {
+  --radius: 1.5rem;
+}
+
+html.theme-glass:not(.dark) {
+  --background: oklch(0.94 0.02 280);
+  --foreground: oklch(0.15 0.02 280);
+  --card: oklch(0.97 0.005 280 / 0.5);
+  --card-foreground: oklch(0.15 0.02 280);
+  --popover: oklch(0.97 0.005 280 / 0.7);
+  --popover-foreground: oklch(0.15 0.02 280);
+  --primary: oklch(0.6 0.2 var(--theme-hue));
+  --primary-foreground: oklch(0.99 0.005 var(--theme-hue));
+  --secondary: oklch(0.92 0.015 300);
+  --secondary-foreground: oklch(0.2 0.02 280);
+  --muted: oklch(0.93 0.01 280);
+  --muted-foreground: oklch(0.45 0.02 280);
+  --accent: oklch(0.9 0.03 320);
+  --accent-foreground: oklch(0.2 0.02 280);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.98 0.01 27);
+  --border: oklch(0.9 0.01 280 / 0.4);
+  --input: oklch(0.92 0.01 280 / 0.5);
+  --input-background: oklch(0.97 0.005 280 / 0.4);
+  --overlay: oklch(0.5 0.02 280 / 0.2);
+  --ring: oklch(0.6 0.2 var(--theme-hue));
+
+  --sidebar-background: oklch(0.96 0.008 280 / 0.5);
+  --sidebar-foreground: oklch(0.4 0.02 280);
+  --sidebar-primary: oklch(0.15 0.02 280);
+  --sidebar-primary-foreground: oklch(0.98 0.005 280);
+  --sidebar-accent: oklch(0.92 0.02 300 / 0.5);
+  --sidebar-accent-foreground: oklch(0.15 0.02 280);
+  --sidebar-border: oklch(0.88 0.012 280 / 0.35);
+  --sidebar-ring: oklch(0.6 0.2 var(--theme-hue));
+}
+
+html.theme-glass.dark {
+  --background: oklch(0.08 0.015 280);
+  --foreground: oklch(0.95 0.008 280);
+  --card: oklch(0.16 0.012 280 / 0.45);
+  --card-foreground: oklch(0.95 0.008 280);
+  --popover: oklch(0.16 0.012 280 / 0.65);
+  --popover-foreground: oklch(0.95 0.008 280);
+  --primary: oklch(0.72 0.22 var(--theme-hue));
+  --primary-foreground: oklch(0.08 0.01 280);
+  --secondary: oklch(0.2 0.015 300);
+  --secondary-foreground: oklch(0.95 0.008 280);
+  --muted: oklch(0.18 0.012 280);
+  --muted-foreground: oklch(0.65 0.015 280);
+  --accent: oklch(0.22 0.02 320);
+  --accent-foreground: oklch(0.95 0.008 280);
+  --destructive: oklch(0.5 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+  --border: oklch(0.28 0.015 280 / 0.35);
+  --input: oklch(0.22 0.012 280 / 0.5);
+  --input-background: oklch(0.1 0.01 280 / 0.45);
+  --overlay: oklch(0.02 0 0 / 0.8);
+  --ring: oklch(0.72 0.22 var(--theme-hue));
+
+  --sidebar-background: oklch(0.1 0.012 280 / 0.5);
+  --sidebar-foreground: oklch(0.7 0.012 280);
+  --sidebar-primary: oklch(0.72 0.22 var(--theme-hue));
+  --sidebar-primary-foreground: oklch(0.08 0.01 280);
+  --sidebar-accent: oklch(0.2 0.018 300 / 0.4);
+  --sidebar-accent-foreground: oklch(0.7 0.012 280);
+  --sidebar-border: oklch(0.25 0.012 280 / 0.3);
+  --sidebar-ring: oklch(0.72 0.22 var(--theme-hue));
+}
+
+/* Glass background: soft pastel gradient */
+html.theme-glass .app-dot-grid {
+  mask-image: none;
+}
+html.theme-glass:not(.dark) .app-dot-grid {
+  background-image: none;
+  background: linear-gradient(
+    145deg,
+    oklch(0.92 0.04 280 / 0.5) 0%,
+    oklch(0.94 0.03 330 / 0.4) 40%,
+    oklch(0.93 0.035 220 / 0.35) 100%
+  );
+}
+html.theme-glass.dark .app-dot-grid {
+  background-image: none;
+  background: linear-gradient(
+    145deg,
+    oklch(0.15 0.03 280 / 0.4) 0%,
+    oklch(0.12 0.025 330 / 0.3) 40%,
+    oklch(0.13 0.03 220 / 0.3) 100%
+  );
+}
+
+/* Glass ambient orbs — very soft */
+html.theme-glass:not(.dark) .ambient-orb:nth-child(2) {
+  background: oklch(0.8 0.08 300 / 0.15) !important;
+}
+html.theme-glass:not(.dark) .ambient-orb:nth-child(3) {
+  background: oklch(0.82 0.06 220 / 0.12) !important;
+}
+html.theme-glass:not(.dark) .ambient-orb:nth-child(4) {
+  background: oklch(0.85 0.05 340 / 0.1) !important;
+}
+html.theme-glass.dark .ambient-orb:nth-child(2) {
+  background: oklch(0.4 0.06 300 / 0.1) !important;
+}
+html.theme-glass.dark .ambient-orb:nth-child(3) {
+  background: oklch(0.35 0.05 220 / 0.08) !important;
+}
+html.theme-glass.dark .ambient-orb:nth-child(4) {
+  background: oklch(0.4 0.04 340 / 0.06) !important;
+}
+
+/* Glass cards — heavy frosted glass */
+html.theme-glass .glass-card {
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+}
+html.theme-glass:not(.dark) .glass-card {
+  border: 1px solid oklch(1 0 0 / 0.25) !important;
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.3) inset,
+    0 8px 32px oklch(0.5 0.03 280 / 0.06);
+}
+html.theme-glass.dark .glass-card {
+  border: 1px solid oklch(1 0 0 / 0.08) !important;
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.06) inset,
+    0 8px 32px oklch(0 0 0 / 0.3);
+}
+
+/* Glass header & sidebar — extra blur */
+html.theme-glass .app-header {
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+}
+html.theme-glass:not(.dark) .app-header {
+  border-bottom: 1px solid oklch(1 0 0 / 0.2) !important;
+  box-shadow: 0 4px 20px oklch(0.5 0.02 280 / 0.04);
+}
+html.theme-glass .app-sidebar {
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+}
+
+/* Glass nav active — rounded, subtle */
+html.theme-glass .nav-link--active {
+  border-radius: 1rem;
+}
+html.theme-glass .nav-link--active::before {
+  border-radius: 0 6px 6px 0;
+  box-shadow: none;
+}
+
+
+/* ─── CYBERPUNK / NEON ────────────────────────────────────── */
+
+html.theme-cyberpunk {
+  --radius: 0.125rem; /* 2px */
+}
+
+/* Cyberpunk is dark-only — light mode still gets dark colors */
+html.theme-cyberpunk,
+html.theme-cyberpunk:not(.dark) {
+  --background: oklch(0.06 0.015 280);
+  --foreground: oklch(0.92 0.02 200);
+  --card: oklch(0.1 0.015 270);
+  --card-foreground: oklch(0.92 0.02 200);
+  --popover: oklch(0.1 0.015 270);
+  --popover-foreground: oklch(0.92 0.02 200);
+  --primary: oklch(0.8 0.18 195);
+  --primary-foreground: oklch(0.06 0.01 280);
+  --secondary: oklch(0.15 0.015 280);
+  --secondary-foreground: oklch(0.85 0.015 200);
+  --muted: oklch(0.14 0.012 280);
+  --muted-foreground: oklch(0.6 0.02 200);
+  --accent: oklch(0.7 0.22 330);
+  --accent-foreground: oklch(0.06 0.01 330);
+  --destructive: oklch(0.55 0.24 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+  --border: oklch(0.25 0.02 270);
+  --input: oklch(0.18 0.015 270);
+  --input-background: oklch(0.08 0.012 280);
+  --overlay: oklch(0.02 0 0 / 0.9);
+  --ring: oklch(0.8 0.18 195);
+
+  --sidebar-background: oklch(0.08 0.015 275);
+  --sidebar-foreground: oklch(0.6 0.02 200);
+  --sidebar-primary: oklch(0.8 0.18 195);
+  --sidebar-primary-foreground: oklch(0.06 0.01 280);
+  --sidebar-accent: oklch(0.15 0.02 270);
+  --sidebar-accent-foreground: oklch(0.85 0.015 200);
+  --sidebar-border: oklch(0.22 0.018 275);
+  --sidebar-ring: oklch(0.8 0.18 195);
+
+  color-scheme: dark;
+}
+
+html.theme-cyberpunk body {
+  font-family: 'JetBrains Mono Variable', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  color-scheme: dark;
+}
+
+/* Cyberpunk background: grid lines */
+html.theme-cyberpunk .app-dot-grid {
+  background-image:
+    linear-gradient(oklch(0.4 0.1 195 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.4 0.1 195 / 0.06) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: none;
+}
+
+/* Cyberpunk: scanline overlay */
+html.theme-cyberpunk .app-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    oklch(0 0 0 / 0.03) 2px,
+    oklch(0 0 0 / 0.03) 4px
+  );
+}
+
+/* Cyberpunk: no ambient orbs, replace with subtle corner glow */
+html.theme-cyberpunk .ambient-orb {
+  display: none;
+}
+
+/* Cyberpunk cards — neon glow borders */
+html.theme-cyberpunk .glass-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid oklch(0.6 0.15 195 / 0.3) !important;
+  box-shadow:
+    0 0 8px oklch(0.6 0.18 195 / 0.1),
+    0 0 1px oklch(0.6 0.18 195 / 0.3) inset;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+html.theme-cyberpunk .glass-card:hover {
+  border-color: oklch(0.7 0.18 195 / 0.5) !important;
+  box-shadow:
+    0 0 16px oklch(0.65 0.2 195 / 0.15),
+    0 0 1px oklch(0.7 0.2 195 / 0.4) inset;
+}
+
+/* Cyberpunk header */
+html.theme-cyberpunk .app-header {
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid oklch(0.5 0.15 195 / 0.2) !important;
+  box-shadow: 0 1px 12px oklch(0.5 0.15 195 / 0.08);
+}
+
+/* Cyberpunk sidebar */
+html.theme-cyberpunk .app-sidebar {
+  border-right: 1px solid oklch(0.5 0.15 195 / 0.15) !important;
+}
+
+/* Cyberpunk nav active — neon glow */
+html.theme-cyberpunk .nav-link--active {
+  border-radius: 2px;
+  box-shadow: 0 0 10px oklch(0.5 0.15 195 / 0.15);
+}
+html.theme-cyberpunk .nav-link--active::before {
+  width: 2px;
+  border-radius: 0;
+  background: oklch(0.8 0.18 195);
+  box-shadow: 0 0 8px oklch(0.8 0.18 195 / 0.6), 0 0 20px oklch(0.8 0.18 195 / 0.3);
+}
+
+/* Cyberpunk glitch micro-animation on hover */
+@keyframes cyber-glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(1px, -1px); }
+  60% { transform: translate(-1px, 0); }
+  80% { transform: translate(1px, 0); }
+}
+
+html.theme-cyberpunk .hover-card-glow:hover {
+  animation: cyber-glitch 0.3s ease;
+  box-shadow: 0 0 16px oklch(0.6 0.2 195 / 0.2);
+}
+
+/* Cyberpunk selection color */
+html.theme-cyberpunk ::selection {
+  background: oklch(0.6 0.18 195 / 0.3);
+  color: oklch(0.95 0.01 195);
+}
+
+
+/* ─── MIDNIGHT LUXE ───────────────────────────────────────── */
+
+html.theme-luxe {
+  --radius: 0.75rem;
+}
+
+/* Midnight Luxe is dark-only — light mode still gets the luxe dark palette */
+html.theme-luxe,
+html.theme-luxe:not(.dark) {
+  --background: oklch(0.06 0.01 70);
+  --foreground: oklch(0.88 0.02 80);
+  --card: oklch(0.1 0.012 65 / 0.8);
+  --card-foreground: oklch(0.88 0.02 80);
+  --popover: oklch(0.1 0.012 65 / 0.9);
+  --popover-foreground: oklch(0.88 0.02 80);
+  --primary: oklch(0.78 0.12 85);
+  --primary-foreground: oklch(0.06 0.01 70);
+  --secondary: oklch(0.15 0.012 65);
+  --secondary-foreground: oklch(0.82 0.02 80);
+  --muted: oklch(0.14 0.01 65);
+  --muted-foreground: oklch(0.55 0.02 80);
+  --accent: oklch(0.7 0.1 55);
+  --accent-foreground: oklch(0.06 0.01 60);
+  --destructive: oklch(0.5 0.2 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+  --border: oklch(0.22 0.015 70 / 0.5);
+  --input: oklch(0.18 0.012 65);
+  --input-background: oklch(0.08 0.008 70);
+  --overlay: oklch(0.02 0 0 / 0.9);
+  --ring: oklch(0.78 0.12 85);
+
+  --sidebar-background: oklch(0.08 0.012 68 / 0.85);
+  --sidebar-foreground: oklch(0.6 0.015 80);
+  --sidebar-primary: oklch(0.78 0.12 85);
+  --sidebar-primary-foreground: oklch(0.06 0.01 70);
+  --sidebar-accent: oklch(0.15 0.015 65);
+  --sidebar-accent-foreground: oklch(0.75 0.02 80);
+  --sidebar-border: oklch(0.2 0.012 70 / 0.4);
+  --sidebar-ring: oklch(0.78 0.12 85);
+
+  color-scheme: dark;
+}
+
+html.theme-luxe body {
+  font-family: 'Space Grotesk Variable', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+/* Luxe background: subtle gold shimmer */
+html.theme-luxe .app-dot-grid {
+  background-image: none;
+  mask-image: none;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 40%,
+    oklch(0.2 0.03 80 / 0.15) 0%,
+    transparent 70%
+  );
+}
+
+/* Luxe ambient orbs — warm gold / champagne */
+html.theme-luxe .ambient-orb:nth-child(2) {
+  background: oklch(0.5 0.1 80 / 0.08) !important;
+}
+html.theme-luxe .ambient-orb:nth-child(3) {
+  background: oklch(0.45 0.08 55 / 0.06) !important;
+}
+html.theme-luxe .ambient-orb:nth-child(4) {
+  background: oklch(0.5 0.06 40 / 0.05) !important;
+}
+
+/* Luxe: shimmer animation on ambient orbs */
+@keyframes luxe-shimmer {
+  0%, 100% { opacity: 0.6; transform: translate(0, 0) scale(1); }
+  50% { opacity: 1; transform: translate(1%, -2%) scale(1.02); }
+}
+html.theme-luxe .ambient-orb {
+  animation: luxe-shimmer 20s ease-in-out infinite;
+}
+
+/* Luxe cards — subtle gold border glow */
+html.theme-luxe .glass-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid oklch(0.5 0.06 80 / 0.15) !important;
+  box-shadow:
+    0 1px 0 oklch(0.7 0.08 80 / 0.05) inset,
+    0 4px 24px oklch(0 0 0 / 0.35);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+html.theme-luxe .glass-card:hover {
+  border-color: oklch(0.6 0.08 80 / 0.25) !important;
+  box-shadow:
+    0 1px 0 oklch(0.7 0.08 80 / 0.08) inset,
+    0 4px 28px oklch(0 0 0 / 0.4);
+}
+
+/* Luxe header — gold accent line */
+html.theme-luxe .app-header {
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid oklch(0.5 0.06 80 / 0.12) !important;
+  box-shadow: 0 1px 12px oklch(0 0 0 / 0.3);
+}
+
+/* Luxe sidebar */
+html.theme-luxe .app-sidebar {
+  border-right: 1px solid oklch(0.5 0.06 80 / 0.1) !important;
+}
+
+/* Luxe nav active — gold glow */
+html.theme-luxe .nav-link--active {
+  box-shadow: 0 1px 10px oklch(0.5 0.08 80 / 0.12);
+}
+html.theme-luxe .nav-link--active::before {
+  background: oklch(0.78 0.12 85);
+  box-shadow: 0 0 10px oklch(0.7 0.1 80 / 0.4);
+}
+
+/* Luxe hover — subtle gold glow */
+html.theme-luxe .hover-card-glow:hover {
+  box-shadow: 0 4px 20px oklch(0.55 0.08 80 / 0.12);
+}
+
+/* Luxe selection */
+html.theme-luxe ::selection {
+  background: oklch(0.6 0.1 80 / 0.3);
+  color: oklch(0.95 0.01 80);
+}

@@ -68,7 +68,7 @@
       <div class="flex flex-1 overflow-hidden">
         <!-- Sidebar Navigation -->
         <nav
-          class="app-sidebar flex w-[120px] shrink-0 flex-col items-center gap-1 border-r bg-sidebar-background/80 p-2 overflow-y-auto scrollbar-hidden backdrop-blur-xl"
+          class="app-sidebar flex w-30 shrink-0 flex-col items-center gap-1 border-r bg-sidebar-background/80 p-2 overflow-y-auto scrollbar-hidden backdrop-blur-xl"
         >
           <template v-for="item in navItems" :key="item.to">
             <!-- Coming-soon items render as a disabled div -->
@@ -110,27 +110,44 @@
               v-if="!configStore.configLoaded"
               class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background/75 backdrop-blur-md"
             >
-              <svg
-                class="h-10 w-10 animate-spin text-primary"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                />
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-              <span class="text-sm text-muted-foreground">Initializing scanner backend…</span>
+              <template v-if="!configLoadError">
+                <svg
+                  class="h-10 w-10 animate-spin text-primary"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+                <span class="text-sm text-muted-foreground">Initializing scanner backend…</span>
+              </template>
+              <template v-else>
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+                  <AlertTriangle class="h-6 w-6" />
+                </div>
+                <div class="max-w-sm space-y-1 text-center">
+                  <p class="text-sm font-semibold text-foreground">Failed to initialize</p>
+                  <p class="text-xs leading-relaxed text-muted-foreground">
+                    {{ configLoadError }}
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    Try restarting the app. If the problem persists, check
+                    <span class="font-mono">sidecar.log</span> next to the executable.
+                  </p>
+                </div>
+              </template>
             </div>
           </transition>
           <router-view v-slot="{ Component, route }">
@@ -174,8 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, markRaw, nextTick, onMounted, onUnmounted, onErrorCaptured, watchEffect } from 'vue'
-import { useDark, useToggle } from '@vueuse/core'
+import { ref, markRaw, nextTick, onMounted, onUnmounted, onErrorCaptured } from 'vue'
 import { useConfigStore } from './stores/config-store'
 import { FullConfigSchema } from './schema/FullConfig'
 import { BatchGovernorDataListSchema, KingdomPresetListSchema } from './schema/SchemaUtils'
@@ -197,11 +213,12 @@ import {
 import { Toaster, toast } from '@/components/ui/toast'
 import UpdateNotifier from '@/components/UpdateNotifier.vue'
 import ErrorNotifier from '@/components/ErrorNotifier.vue'
-import { Radar, ScanLine, Calculator, History, Settings } from 'lucide-vue-next'
+import { Radar, ScanLine, Calculator, History, Settings, AlertTriangle } from 'lucide-vue-next'
 import { onSidecarEvent } from '@/lib/tauriClient'
 import * as ipc from '@/lib/tauriClient'
 import { useErrorStore } from '@/stores/error-store'
 import { analyzeError } from '@/util/error-mapper'
+import { useTheme } from '@/composables/useTheme'
 
 const configStore = useConfigStore()
 const allianceStore = useAllianceStore()
@@ -209,8 +226,10 @@ const honorStore = useHonorStore()
 const seedStore = useSeedStore()
 const errorStore = useErrorStore()
 
-const darkMode = useDark()
-const toggleDarkMode = useToggle(darkMode)
+// Fatal config-load failure — replaces the loading spinner with an error card
+const configLoadError = ref('')
+
+const { darkMode, toggleDarkMode } = useTheme()
 
 // Global error catcher — log child component errors to console
 onErrorCaptured((err, instance, info) => {
@@ -292,12 +311,30 @@ const onConfirmDialogOpenChange = (open: boolean) => {
 }
 
 // ---- Batch helpers ----
-function parseBatchType(raw: string | unknown) {
-  const parsed = BatchTypeSchema.safeParse(typeof raw === 'string' ? JSON.parse(raw) : raw)
+function parseBatchType(raw: unknown) {
+  // The sidecar now sends { type: "Alliance" } objects; older builds sent a
+  // JSON-encoded string of the same shape. Accept both, never throw.
+  let value: unknown = raw
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (trimmed.startsWith('{')) {
+      try {
+        value = JSON.parse(trimmed)
+      } catch {
+        return null
+      }
+    } else {
+      value = { type: trimmed }
+    }
+  }
+  if (value && typeof value === 'object' && !('type' in (value as Record<string, unknown>))) {
+    return null
+  }
+  const parsed = BatchTypeSchema.safeParse(value)
   return parsed.success ? parsed.data : null
 }
 
-const handleBatchScanId = (id: string, batchType: string) => {
+const handleBatchScanId = (id: string, batchType: unknown) => {
   const parsedType = parseBatchType(batchType)
   if (parsedType) {
     switch (parsedType.type) {
@@ -314,29 +351,36 @@ const handleBatchScanId = (id: string, batchType: string) => {
   }
 }
 
-const handleBatchUpdate = (governorData: unknown, extraData: unknown, batchType: string) => {
+const handleBatchUpdate = (governorData: unknown, extraData: unknown, batchType: unknown) => {
   const parsedType = parseBatchType(batchType)
-  if (parsedType) {
-    const govParsed = BatchGovernorDataListSchema.parse(governorData)
-    const extraParsed = BatchAdditionalDataSchema.parse(extraData)
-    switch (parsedType.type) {
-      case 'Alliance':
-        allianceStore.lastGovernor = govParsed
-        allianceStore.status = extraParsed
-        break
-      case 'Honor':
-        honorStore.lastGovernor = govParsed
-        honorStore.status = extraParsed
-        break
-      case 'Seed':
-        seedStore.lastGovernor = govParsed
-        seedStore.status = extraParsed
-        break
-    }
+  if (!parsedType) return
+  const govParsed = BatchGovernorDataListSchema.safeParse(governorData)
+  const extraParsed = BatchAdditionalDataSchema.safeParse(extraData)
+  if (!govParsed.success || !extraParsed.success) {
+    // Drop malformed rows instead of killing the whole update
+    console.warn('Discarding malformed batch update:', {
+      gov: govParsed.error?.issues,
+      extra: extraParsed.error?.issues,
+    })
+    return
+  }
+  switch (parsedType.type) {
+    case 'Alliance':
+      allianceStore.lastGovernor = govParsed.data
+      allianceStore.status = extraParsed.data
+      break
+    case 'Honor':
+      honorStore.lastGovernor = govParsed.data
+      honorStore.status = extraParsed.data
+      break
+    case 'Seed':
+      seedStore.lastGovernor = govParsed.data
+      seedStore.status = extraParsed.data
+      break
   }
 }
 
-const handleBatchStateUpdate = (state: string, batchType: string) => {
+const handleBatchStateUpdate = (state: string, batchType: unknown) => {
   const parsedType = parseBatchType(batchType)
   if (parsedType) {
     switch (parsedType.type) {
@@ -353,23 +397,22 @@ const handleBatchStateUpdate = (state: string, batchType: string) => {
   }
 }
 
-const handleBatchScanFinished = (batchType: string | unknown) => {
+const handleBatchScanFinished = (batchType: unknown) => {
   const parsedType = parseBatchType(batchType)
-  if (parsedType) {
-    switch (parsedType.type) {
-      case 'Alliance':
-        allianceStore.scanRunning = false
-        allianceStore.startButtonDisabled = false
-        break
-      case 'Honor':
-        honorStore.scanRunning = false
-        honorStore.startButtonDisabled = false
-        break
-      case 'Seed':
-        seedStore.scanRunning = false
-        seedStore.startButtonDisabled = false
-        break
-    }
+  if (!parsedType) return
+  switch (parsedType.type) {
+    case 'Alliance':
+      allianceStore.scanRunning = false
+      allianceStore.startButtonDisabled = false
+      break
+    case 'Honor':
+      honorStore.scanRunning = false
+      honorStore.startButtonDisabled = false
+      break
+    case 'Seed':
+      seedStore.scanRunning = false
+      seedStore.startButtonDisabled = false
+      break
   }
 }
 
@@ -384,7 +427,9 @@ async function init() {
         configStore.config = parsed.data
         configStore.configLoaded = true
       } else {
-        console.warn('Failed to parse loaded config:', parsed.error)
+        console.error('Failed to parse loaded config:', parsed.error)
+        configLoadError.value =
+          'The saved configuration could not be validated (it may be from an older version). Rename or delete config.json next to the executable and restart.'
       }
     }),
   )
@@ -416,19 +461,16 @@ async function init() {
 
   unlisteners.push(
     await onSidecarEvent('batch_ask_confirm', (data) => {
-      const typeVal = data.type
-      const parsed = BatchTypeSchema.safeParse(
-        typeof typeVal === 'string' ? JSON.parse(typeVal) : typeVal,
-      )
+      const parsed = parseBatchType(data.type)
       showConfirmDialog(data.msg, (confirmed: boolean) => {
-        if (parsed.success) ipc.confirmBatchScan(confirmed, parsed.data.type)
+        if (parsed) ipc.confirmBatchScan(confirmed, parsed.type)
       })
     }),
   )
 
   unlisteners.push(
     await onSidecarEvent('batch_scan_finished', (data) => {
-      handleBatchScanFinished(typeof data === 'string' ? data : JSON.stringify(data))
+      handleBatchScanFinished(data)
     }),
   )
 
@@ -480,17 +522,17 @@ async function init() {
   }
 
   // Load config and presets via sidecar
-  await ipc.loadFullConfig()
-  await ipc.loadScanPresets()
+  try {
+    await ipc.loadFullConfig()
+  } catch (e) {
+    console.error('Failed to load config:', e)
+    configLoadError.value = String(e)
+  }
+  await ipc.loadScanPresets().catch((e) => console.warn('Failed to load presets:', e))
 }
 
 onMounted(() => {
   init()
-
-  // Apply dynamic theme color
-  watchEffect(() => {
-    document.documentElement.style.setProperty('--theme-hue', String(configStore.themeColor))
-  })
 })
 
 onUnmounted(() => {

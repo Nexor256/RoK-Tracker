@@ -1,81 +1,22 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { check } from '@tauri-apps/plugin-updater'
-import { relaunch, exit } from '@tauri-apps/plugin-process'
+import { computed } from 'vue'
 import { Download, X, RefreshCw, ArrowUpCircle, AlertCircle } from 'lucide-vue-next'
+import { useUpdater } from '@/composables/useUpdater'
 
-const updateAvailable = ref(false)
-const updateVersion = ref('')
-const updateNotes = ref('')
-const downloading = ref(false)
-const downloadProgress = ref(0)
-const downloadTotal = ref(0)
-const dismissed = ref(false)
-const errorMessage = ref('')
-const errorDismissed = ref(false)
-
-let pendingUpdate: Awaited<ReturnType<typeof check>> | null = null
-
-async function checkForUpdates() {
-  try {
-    const update = await check()
-    if (update) {
-      pendingUpdate = update
-      updateVersion.value = update.version
-      updateNotes.value = update.body ?? ''
-      updateAvailable.value = true
-    }
-  } catch (e) {
-    console.warn('Update check failed:', e)
-    errorMessage.value = "Couldn't check for updates. Try again later."
-    errorDismissed.value = false
-  }
-}
-
-async function startUpdate() {
-  if (!pendingUpdate) return
-  downloading.value = true
-  downloadProgress.value = 0
-  downloadTotal.value = 0
-  errorMessage.value = ''
-
-  try {
-    await pendingUpdate.downloadAndInstall((event) => {
-      switch (event.event) {
-        case 'Started':
-          downloadTotal.value = event.data.contentLength ?? 0
-          break
-        case 'Progress':
-          downloadProgress.value += event.data.chunkLength
-          break
-        case 'Finished':
-          break
-      }
-    })
-    // On Windows, the NSIS installer runs in the background and waits for the app to close.
-    // Relaunching immediately starts a new instance that locks the executable, causing the update to fail.
-    // We exit instead, allowing the installer to finish and automatically launch the new version.
-    if (navigator.userAgent.includes('Windows') || navigator.userAgent.includes('Win')) {
-      await exit(0)
-    } else {
-      await relaunch()
-    }
-  } catch (e) {
-    console.error('Update install failed:', e)
-    downloading.value = false
-    errorMessage.value = "Couldn't install the update. Try again or download it manually."
-    errorDismissed.value = false
-  }
-}
-
-function dismiss() {
-  dismissed.value = true
-}
-
-function dismissError() {
-  errorDismissed.value = true
-  errorMessage.value = ''
-}
+const {
+  updateAvailable,
+  updateVersion,
+  updateNotes,
+  downloading,
+  downloadProgress,
+  downloadTotal,
+  dismissed,
+  errorMessage,
+  errorDismissed,
+  startUpdate,
+  dismiss,
+  dismissError,
+} = useUpdater()
 
 const showUpdate = computed(() => updateAvailable.value && !dismissed.value)
 const showError = computed(() => !!errorMessage.value && !errorDismissed.value)
@@ -92,10 +33,6 @@ function formatBytes(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
-
-onMounted(() => {
-  checkForUpdates()
-})
 </script>
 
 <template>

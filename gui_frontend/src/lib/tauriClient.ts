@@ -101,28 +101,28 @@ export async function saveConfig(config: FullConfig): Promise<void> {
   await confirmation
 }
 
-export function saveScanPresets(presets: ScanPreset[]): void {
-  invoke('save_scan_presets', { presets: toPlain(presets) })
+export function saveScanPresets(presets: ScanPreset[]): Promise<void> {
+  return invoke('save_scan_presets', { presets: toPlain(presets) })
 }
 
-export function startKingdomScan(config: FullConfig, preset: ScanPreset): void {
-  invoke('start_kingdom_scan', { config: toPlain(config), preset: toPlain(preset) })
+export function startKingdomScan(config: FullConfig, preset: ScanPreset): Promise<void> {
+  return invoke('start_kingdom_scan', { config: toPlain(config), preset: toPlain(preset) })
 }
 
-export function stopKingdomScan(): void {
-  invoke('stop_kingdom_scan')
+export function stopKingdomScan(): Promise<void> {
+  return invoke('stop_kingdom_scan')
 }
 
 export function confirmKingdom(confirmed: boolean): void {
   invoke('confirm_kingdom', { confirmed })
 }
 
-export function startBatchScan(config: FullConfig, batchType: string): void {
-  invoke('start_batch_scan', { config: toPlain(config), batchType })
+export function startBatchScan(config: FullConfig, batchType: string): Promise<void> {
+  return invoke('start_batch_scan', { config: toPlain(config), batchType })
 }
 
-export function stopBatchScan(batchType: string): void {
-  invoke('stop_batch_scan', { batchType })
+export function stopBatchScan(batchType: string): Promise<void> {
+  return invoke('stop_batch_scan', { batchType })
 }
 
 export function confirmBatch(confirmed: boolean, batchType: string): void {
@@ -161,6 +161,14 @@ export function openScanFolder(path: string): void {
 
 export function detectEmulators(): void {
   invoke('detect_emulators').catch((e) => console.error('detectEmulators failed:', e))
+}
+
+/**
+ * Kill the sidecar and exit the app so a pending update can replace files.
+ * Never returns — the Rust side calls process::exit after cleanup.
+ */
+export function shutdownForUpdate(): void {
+  invoke('shutdown_for_update').catch((e) => console.error('shutdownForUpdate failed:', e))
 }
 
 // ---- Events (Python → Rust → frontend) ----

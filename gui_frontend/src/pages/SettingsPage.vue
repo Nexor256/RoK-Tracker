@@ -145,7 +145,57 @@
           <CardTitle>Appearance</CardTitle>
           <CardDescription>Customize the look and feel of the application.</CardDescription>
         </CardHeader>
-        <CardContent class="grid gap-4">
+        <CardContent class="grid gap-5">
+          <!-- Theme Selector -->
+          <div class="space-y-3">
+            <label class="text-sm font-medium leading-none">Theme</label>
+            <div class="grid grid-cols-3 gap-2.5">
+              <button
+                v-for="theme in THEMES"
+                :key="theme.id"
+                @click="configStore.themeName = theme.id"
+                class="group relative flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+                :class="
+                  configStore.themeName === theme.id
+                    ? 'border-primary bg-primary/5 shadow-md'
+                    : 'border-border/60 bg-card/50 hover:border-border hover:bg-card/80'
+                "
+              >
+                <!-- Theme preview swatch -->
+                <div
+                  class="flex h-10 w-full items-center justify-center rounded-md text-lg"
+                  :style="theme.swatchStyle"
+                >
+                  {{ theme.icon }}
+                </div>
+                <span
+                  class="text-xs font-semibold"
+                  :class="
+                    configStore.themeName === theme.id
+                      ? 'text-primary'
+                      : 'text-muted-foreground group-hover:text-foreground'
+                  "
+                >
+                  {{ theme.label }}
+                </span>
+                <!-- Active indicator -->
+                <div
+                  v-if="configStore.themeName === theme.id"
+                  class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                >
+                  <CheckIcon class="h-3 w-3" />
+                </div>
+              </button>
+            </div>
+
+            <p v-if="selectedTheme?.forcesDarkMode" class="text-xs text-muted-foreground italic">
+              ⚡ This theme forces dark mode.
+            </p>
+          </div>
+
+          <Separator />
+
+          <!-- Theme Accent Color (hue slider) -->
           <div class="space-y-3">
             <label class="text-sm font-medium leading-none flex items-center justify-between">
               Theme Accent Color
@@ -208,6 +258,30 @@
                 :title="preset.label"
                 :style="{ backgroundColor: `oklch(0.6 0.2 ${preset.hue})` }"
               />
+            </div>
+          </div>
+
+          <Separator />
+
+          <!-- Updates -->
+          <div class="space-y-2.5">
+            <label class="text-sm font-medium leading-none">Updates</label>
+            <div
+              class="flex items-center justify-between gap-4 rounded-md bg-muted/50 dark:bg-muted/10 p-3 border border-border/60 dark:border-border/50 shadow-sm"
+            >
+              <p class="text-xs text-muted-foreground leading-relaxed">
+                The app checks for updates automatically every 4 hours.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                class="shrink-0 gap-1.5"
+                :disabled="updateChecking || updateDownloading"
+                @click="handleCheckForUpdates"
+              >
+                <RefreshCwIcon class="h-3.5 w-3.5" :class="{ 'animate-spin': updateChecking }" />
+                {{ updateChecking ? 'Checking…' : 'Check for Updates' }}
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -385,7 +459,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'SettingsPage' })
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useConfigStore } from '@/stores/config-store'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -398,11 +472,42 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { toast } from '@/components/ui/toast'
+import { CheckIcon, RefreshCwIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-vue-next'
 import * as ipc from '@/lib/tauriClient'
+import { THEMES, getTheme } from '@/lib/themes'
+import { useUpdater } from '@/composables/useUpdater'
 
 const configStore = useConfigStore()
 const saving = ref(false)
+
+const selectedTheme = computed(() => getTheme(configStore.themeName))
+
+// Manual update check (automatic checks run in the background via useUpdater)
+const {
+  checking: updateChecking,
+  downloading: updateDownloading,
+  checkForUpdates,
+} = useUpdater()
+
+const handleCheckForUpdates = async () => {
+  const result = await checkForUpdates(true)
+  if (result === 'up-to-date') {
+    toast({
+      title: 'Up to Date',
+      description: "You're running the latest version of RoK Tracker Suite.",
+      variant: 'success',
+    })
+  } else if (result === 'network-error') {
+    toast({
+      title: 'Update Check Failed',
+      description: "Couldn't reach the update server. Check your connection.",
+      variant: 'destructive',
+    })
+  }
+  // 'available' — the global UpdateNotifier card appears automatically
+}
 
 // Emulator Detection State
 const isScanningEmulators = ref(false)

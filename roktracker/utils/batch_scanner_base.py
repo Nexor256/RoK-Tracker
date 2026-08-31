@@ -1,3 +1,4 @@
+import logging
 import math
 import time
 
@@ -14,6 +15,9 @@ from typing import Callable, List, Type
 from roktracker.utils.types.batch_scanner.additional_data import AdditionalData
 from roktracker.utils.types.batch_scanner.governor_data import GovernorData
 from roktracker.utils.types.full_config import FormatsConfig
+from pathvalidate import sanitize_filename
+
+logger = logging.getLogger(__name__)
 
 
 def default_batch_callback(govs: List[GovernorData], extra: AdditionalData) -> None:
@@ -197,7 +201,9 @@ class BatchScannerBase:
         self.adb_client.start_adb()
         self.screens_needed = int(math.ceil(amount / self.govs_per_screen))
 
-        filename = f"{self.scanner_name}{amount}-{self.start_date}-{kingdom}-[{self.run_id}]"
+        # Sanitize the user-supplied name before it reaches the filesystem
+        safe_kingdom = str(sanitize_filename(kingdom)) if kingdom else ""
+        filename = f"{self.scanner_name}{amount}-{self.start_date}-{safe_kingdom}-[{self.run_id}]"
         data_handler = PandasHandler(self.scan_path, filename, formats)
 
         self.state_callback("Scanning")
@@ -244,7 +250,12 @@ class BatchScannerBase:
         self.cleanup()
 
         for p in self.img_path.glob("gov_name*.png"):
-            p.unlink()
+            try:
+                p.unlink()
+            except OSError:
+                # File may be locked (e.g. open in Explorer preview) — never
+                # let temp-file cleanup fail a completed scan
+                logger.warning("Could not delete temp file: %s", p)
 
         self.state_callback("Scan finished")
 

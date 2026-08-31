@@ -58,6 +58,7 @@ pub fn run() {
             commands::delete_scan_file,
             commands::open_scan_folder,
             commands::detect_emulators,
+            commands::shutdown_for_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -86,8 +86,9 @@ def emit_event(event: str, data=None):
             # Handle broken pipes
             if e.errno in (22, 9, 32):
                 logger.warning("stdout pipe broken, exiting sidecar.")
-                # Use os._exit() to kill all threads immediately since IPC is dead
-                os._exit(0)
+                # Use os._exit() to kill all threads immediately since IPC is dead.
+                # Exit code 1 so supervisors see this as an abnormal end, not success.
+                os._exit(1)
             else:
                 raise
 
@@ -100,11 +101,28 @@ alliance_scanner = None
 honor_scanner = None
 seed_scanner = None
 
+# Mutual exclusion across ALL scanners — they share one emulator/ADB device,
+# one clipboard, and one temp_images/ directory, so concurrent scans corrupt
+# each other. Acquired (non-blocking) synchronously by Start*Scan handlers
+# before spawning the scan thread; released in the thread's finally block.
+scan_slot = threading.Lock()
+
+# Reference to the currently running scan thread, for bounded shutdown on EOF.
+scan_thread: Thread | None = None
+
 kingdom_confirm_result = False
 kingdom_response = Event()
 
 alliance_confirm_result = False
 alliance_response = Event()
+
+# How long ask_confirm waits for the UI to answer before giving up.
+CONFIRM_TIMEOUT_SECONDS = 300
+
+# Commands whose handlers may be slow (filesystem scans, subprocess probes).
+# They run on short-lived worker threads so the reader loop stays responsive
+# for Confirm*/Stop* while a query is in flight.
+ASYNC_COMMANDS = {"ListScanHistory", "GetScanDetail", "CompareScanFiles", "DetectEmulators"}
 
 # ---------------------------------------------------------------------------
 # Callback handler — replaces window.evaluate_js() with emit_event()
@@ -130,7 +148,11 @@ class SidecarCallbackHandler:
     def ask_confirm(self, message: str) -> bool:
         kingdom_response.clear()
         emit_event("kingdom_ask_confirm", message)
-        kingdom_response.wait()
+        # Timeout = UI unreachable. Continue scanning (True) so buffered
+        # progress is not thrown away; stdin EOF remains the real stop signal.
+        if not kingdom_response.wait(timeout=CONFIRM_TIMEOUT_SECONDS):
+            logger.warning("Kingdom confirm wait timed out — continuing scan")
+            return True
         return kingdom_confirm_result
 
     def kingdom_scan_finished(self):
@@ -151,7 +173,7 @@ class SidecarCallbackHandler:
             {
                 "gov": TypeAdapter(list[BatchData]).dump_python(batch_data, mode="python"),
                 "extra": extra_data.model_dump(),
-                "type": BatchStatus(type=batch_type).model_dump_json(),
+                "type": BatchStatus(type=batch_type).model_dump(),
             },
         )
 
@@ -175,7 +197,7 @@ class SidecarCallbackHandler:
             "batch_state_update",
             {
                 "msg": msg,
-                "type": BatchStatus(type=batch_type).model_dump_json(),
+                "type": BatchStatus(type=batch_type).model_dump(),
             },
         )
 
@@ -193,14 +215,14 @@ class SidecarCallbackHandler:
             "batch_scan_id",
             {
                 "id": scan_id,
-                "type": BatchStatus(type=batch_type).model_dump_json(),
+                "type": BatchStatus(type=batch_type).model_dump(),
             },
         )
 
     def batch_scan_finished(self, batch_type: BatchType):
         emit_event(
             "batch_scan_finished",
-            BatchStatus(type=batch_type).model_dump_json(),
+            BatchStatus(type=batch_type).model_dump(),
         )
 
     def alliance_scan_finished(self):
@@ -218,10 +240,12 @@ class SidecarCallbackHandler:
             "batch_ask_confirm",
             {
                 "msg": message,
-                "type": BatchStatus(type=BatchType.ALLIANCE).model_dump_json(),
+                "type": BatchStatus(type=BatchType.ALLIANCE).model_dump(),
             },
         )
-        alliance_response.wait()
+        if not alliance_response.wait(timeout=CONFIRM_TIMEOUT_SECONDS):
+            logger.warning("Batch confirm wait timed out — continuing scan")
+            return True
         return alliance_confirm_result
 
 
@@ -261,6 +285,9 @@ def _start_kingdom_scanner(full_config: str, scan_preset: str):
     except Exception as e:
         logger.exception("Kingdom scan error")
         emit_event("error", str(e))
+    finally:
+        kingdom_scanner = None
+        scan_slot.release()
 
 
 def _start_alliance_scanner(full_config: str):
@@ -278,6 +305,9 @@ def _start_alliance_scanner(full_config: str):
     except Exception as e:
         logger.exception("Alliance scan error")
         emit_event("error", str(e))
+    finally:
+        alliance_scanner = None
+        scan_slot.release()
 
 
 def _start_honor_scanner(full_config: str):
@@ -295,6 +325,9 @@ def _start_honor_scanner(full_config: str):
     except Exception as e:
         logger.exception("Honor scan error")
         emit_event("error", str(e))
+    finally:
+        honor_scanner = None
+        scan_slot.release()
 
 
 def _start_seed_scanner(full_config: str):
@@ -312,6 +345,9 @@ def _start_seed_scanner(full_config: str):
     except Exception as e:
         logger.exception("Seed scan error")
         emit_event("error", str(e))
+    finally:
+        seed_scanner = None
+        scan_slot.release()
 
 
 # ---------------------------------------------------------------------------
@@ -326,6 +362,19 @@ def command(name):
         COMMANDS[name] = fn
         return fn
     return decorator
+
+
+def _begin_scan() -> bool:
+    """
+    Try to claim the single scan slot. Must be called synchronously from the
+    reader thread BEFORE spawning the scan thread, so two rapid Start commands
+    cannot both slip through.
+    """
+    if not scan_slot.acquire(blocking=False):
+        logger.warning("Start command rejected — a scan is already running")
+        emit_event("error", "A scan is already running. Stop it before starting another.")
+        return False
+    return True
 
 
 @command("LoadFullConfig")
@@ -369,10 +418,15 @@ def cmd_start_kingdom(args):
                 "Ranged", "Deaths", "Assistance", "Gathered", "Helps",
             ],
         }
-    Thread(
+    if not _begin_scan():
+        return
+    global scan_thread
+    scan_thread = Thread(
         target=_start_kingdom_scanner,
         args=(json.dumps(args["config"]), json.dumps(preset_data)),
-    ).start()
+        daemon=True,
+    )
+    scan_thread.start()
 
 
 @command("StopKingdomScan")
@@ -392,13 +446,23 @@ def cmd_confirm_kingdom(args):
 def cmd_start_batch(args):
     batch_type = args["batch_type"]
     config_json = json.dumps(args["config"])
+    if not _begin_scan():
+        return
+    global scan_thread
     match batch_type:
         case "Alliance":
-            Thread(target=_start_alliance_scanner, args=(config_json,)).start()
+            scan_thread = Thread(target=_start_alliance_scanner, args=(config_json,), daemon=True)
+            scan_thread.start()
         case "Honor":
-            Thread(target=_start_honor_scanner, args=(config_json,)).start()
+            scan_thread = Thread(target=_start_honor_scanner, args=(config_json,), daemon=True)
+            scan_thread.start()
         case "Seed":
-            Thread(target=_start_seed_scanner, args=(config_json,)).start()
+            scan_thread = Thread(target=_start_seed_scanner, args=(config_json,), daemon=True)
+            scan_thread.start()
+        case _:
+            # Release the slot again — nothing was started
+            scan_slot.release()
+            emit_event("error", f"Unknown batch type: {batch_type}")
 
 
 @command("StopBatchScan")
@@ -414,6 +478,8 @@ def cmd_stop_batch(args):
         case "Seed":
             if seed_scanner:
                 seed_scanner.end_scan()
+        case _:
+            emit_event("error", f"Unknown batch type: {batch_type}")
 
 
 @command("ConfirmBatch")
@@ -422,9 +488,11 @@ def cmd_confirm_batch(args):
     batch_type = args["batch_type"]
     confirmed = args["confirmed"]
     match batch_type:
-        case "Alliance":
+        case "Alliance" | "Honor" | "Seed":
             alliance_confirm_result = confirmed
             alliance_response.set()
+        case _:
+            emit_event("error", f"Unknown batch type: {batch_type}")
 
 
 # ---------------------------------------------------------------------------
@@ -504,6 +572,13 @@ def main():
 
     emit_event("ready")
 
+    def run_command(command_name, command_args):
+        try:
+            COMMANDS[command_name](command_args)
+        except Exception as e:
+            logger.exception(f"Error handling command {command_name}")
+            emit_event("error", f"Command {command_name} failed: {e}")
+
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -516,18 +591,40 @@ def main():
             emit_event("error", f"Invalid JSON: {e}")
             continue
 
+        # A non-object payload (list, string, number) must not kill the loop
+        if not isinstance(msg, dict):
+            logger.error(f"Invalid message (not a JSON object): {line[:200]}")
+            emit_event("error", "Invalid message: expected a JSON object")
+            continue
+
         cmd = msg.get("cmd")
+        if not isinstance(cmd, str):
+            emit_event("error", "Invalid message: missing 'cmd' field")
+            continue
         args = msg.get("args", {})
+        if args is None:
+            args = {}
 
         if cmd in COMMANDS:
-            try:
-                COMMANDS[cmd](args)
-            except Exception as e:
-                logger.exception(f"Error handling command {cmd}")
-                emit_event("error", f"Command {cmd} failed: {e}")
+            if cmd in ASYNC_COMMANDS:
+                # Slow queries run off-thread so Confirm*/Stop* stay responsive.
+                # Daemon + untracked: once the pipe is dead their result is
+                # undeliverable anyway, so shutdown must not wait on them.
+                Thread(target=run_command, args=(cmd, args), daemon=True).start()
+            else:
+                run_command(cmd, args)
         else:
             logger.warning(f"Unknown command: {cmd}")
             emit_event("error", f"Unknown command: {cmd}")
+
+    # stdin EOF — the UI is gone. Give a running scan a short grace period so
+    # an in-flight write can finish, then let the daemon flag end the process
+    # instead of lingering for the remaining scan time.
+    if scan_thread is not None and scan_thread.is_alive():
+        logger.info("stdin closed — waiting up to 30s for the active scan thread")
+        scan_thread.join(timeout=30)
+        if scan_thread.is_alive():
+            logger.warning("Scan thread did not stop within grace period")
 
 
 if __name__ == "__main__":

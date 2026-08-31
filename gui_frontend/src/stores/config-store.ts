@@ -6,6 +6,7 @@ import { useStorage } from '@vueuse/core'
 
 export const useConfigStore = defineStore('configStore', () => {
   const themeColor = useStorage('theme-hue', 275) // Default hue is 275
+  const themeName = useStorage('theme-name', 'default') // Premade theme ID
 
   const config = ref<FullConfig>({
     scan: {
@@ -102,6 +103,7 @@ export const useConfigStore = defineStore('configStore', () => {
     availableScanPresets,
     selectedKingdomOptions,
     themeColor,
+    themeName,
   }
 })
 
