@@ -166,9 +166,14 @@ export function detectEmulators(): void {
 /**
  * Kill the sidecar and exit the app so a pending update can replace files.
  * Never returns — the Rust side calls process::exit after cleanup.
+ * The invoke will reject because the IPC channel is torn down; that is expected.
  */
-export function shutdownForUpdate(): void {
-  invoke('shutdown_for_update').catch((e) => console.error('shutdownForUpdate failed:', e))
+export async function shutdownForUpdate(): Promise<void> {
+  try {
+    await invoke('shutdown_for_update')
+  } catch {
+    // Expected: process::exit tears down the IPC channel before a response arrives
+  }
 }
 
 // ---- Events (Python → Rust → frontend) ----

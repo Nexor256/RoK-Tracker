@@ -204,8 +204,8 @@ pub fn detect_emulators(sidecar: State<'_, SidecarManager>) -> Result<(), String
 #[tauri::command]
 pub fn shutdown_for_update(sidecar: State<'_, SidecarManager>) {
     sidecar.kill();
-    // Give the OS a moment to release the child's file handles
-    std::thread::sleep(std::time::Duration::from_millis(300));
+    // Give the OS time to release the child's file handles and for any
+    std::thread::sleep(std::time::Duration::from_millis(1500));
     std::process::exit(0);
 }
 

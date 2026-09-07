@@ -84,7 +84,7 @@ async function startUpdate() {
     // impls, and an orphaned scanner_sidecar.exe keeps a file lock that blocks the installer.
     const isWindows = navigator.userAgent.includes('Windows') || navigator.userAgent.includes('Win')
     if (isWindows) {
-      shutdownForUpdate()
+      await shutdownForUpdate()
     } else {
       await relaunch()
     }

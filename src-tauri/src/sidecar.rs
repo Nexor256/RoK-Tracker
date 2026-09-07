@@ -228,10 +228,12 @@ impl SidecarManager {
         }
     }
 
-    /// Kill the sidecar process.
+    /// Kill the sidecar process and wait for the OS to release all handles.
     pub fn kill(&self) {
         if let Some(ref mut child) = *self.child.lock().unwrap_or_else(|e| e.into_inner()) {
             let _ = child.kill();
+            // Reap the child so the OS releases all handles on the executable.
+            let _ = child.wait();
         }
         *self.stdin_handle.lock().unwrap_or_else(|e| e.into_inner()) = None;
     }

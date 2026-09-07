@@ -28,6 +28,8 @@ Originally based on the tool by [nikolakis1919](https://github.com/nikolakis1919
   - [LD Player, MEmu, and Nox](#ld-player-memu-and-nox)
 - [Output Formats](#output-formats)
 - [Important Notes](#important-notes)
+  - [Before Scanning](#before-scanning)
+  - [General](#general-1)
 - [Troubleshooting & Support](#troubleshooting--support)
 - [Contributing](#contributing)
 - [License](#license)
@@ -76,6 +78,7 @@ The main scanner — configure presets, fine-tune timings, and track every gover
 - **Power validation** — optional plausibility check for governor power
 - **Resume scan** — continue a scan from where you left off
 - **Configurable scan presets** — choose exactly which data fields to capture
+- **City Hall verification** — optional second pass after the main scan uses template matching + OCR to read each governor's City Hall level; governors above a configurable power threshold (default 25 M) are auto-assigned CH 25, only those below it are visited and checked
 
 ### Alliance Scanner
 
@@ -96,10 +99,8 @@ The main scanner — configure presets, fine-tune timings, and track every gover
 
 - **OCR engine** — Tesseract with configurable page segmentation and engine modes
 - **Multiple output formats** — XLSX, CSV, and JSONL
-- **Modern GUI** — built with Vue 3, shadcn-vue, and Tailwind CSS
 - **Emulator support** — Bluestacks 5 (recommended), LD Player, MEmu, and Nox
 - **Configurable timings** — fine-tune delays for different system speeds
-- **Automatic updates** — get notified of new versions and update with one click, no manual downloads needed
 
 ---
 
@@ -228,7 +229,6 @@ Available settings include:
 | Category     | Settings                                                                                                                                                 |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Scan**     | Kingdom name, number of governors, resume, scroll mode, inactive tracking, power/kill validation, kill reconstruction, output formats (XLSX, CSV, JSONL) |
-| **OCR**      | Page segmentation mode, OCR engine mode, languages                                                                                                       |
 | **Emulator** | Emulator type (Bluestacks, LD Player, MEmu, or Nox), instance name, config file path, ADB port                                                                       |
 
 ---
@@ -334,7 +334,7 @@ Contributions are welcome! Here's how you can help:
 - **Suggest features** — start a thread in [GitHub Discussions](https://github.com/Nexor256/RoK-Tracker/discussions)
 - **Submit a pull request** — fork the repo, create a branch, and open a PR against `main`
 
-Please see [Advanced Installation (From Source)](#advanced-installation-from-source) to set up a development environment.
+Please see the **[Building from Source](https://github.com/Nexor256/RoK-Tracker/wiki/Building-from-Source)** wiki page to set up a development environment.
 
 ---
 
@@ -342,4 +342,4 @@ Please see [Advanced Installation (From Source)](#advanced-installation-from-sou
 
 This project is licensed under the [MIT License](LICENSE).
 
-Copyright (c) 2021–2022 [nikolakis1919](https://github.com/nikolakis1919) · Copyright (c) 2022–2026 [Cyrexxis](https://github.com/Cyrexxis)
+Copyright (c) 2021–2022 [nikolakis1919](https://github.com/nikolakis1919) · Copyright (c) 2022–2026 [Cyrexxis](https://github.com/Cyrexxis) · Copyright (c) 2026 [Nexor256](https://github.com/Nexor256)
