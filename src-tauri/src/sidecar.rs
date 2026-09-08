@@ -233,7 +233,16 @@ impl SidecarManager {
         if let Some(ref mut child) = *self.child.lock().unwrap_or_else(|e| e.into_inner()) {
             let _ = child.kill();
             // Reap the child so the OS releases all handles on the executable.
-            let _ = child.wait();
+            let start = std::time::Instant::now();
+            loop {
+                match child.try_wait() {
+                    Ok(Some(_)) => break,
+                    Ok(None) if start.elapsed() < std::time::Duration::from_secs(5) => {
+                        std::thread::sleep(std::time::Duration::from_millis(50));
+                    }
+                    _ => break, // timeout or error — proceed anyway
+                }
+            }
         }
         *self.stdin_handle.lock().unwrap_or_else(|e| e.into_inner()) = None;
     }
