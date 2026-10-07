@@ -15,8 +15,14 @@ const SCAN_DIRS: [&str; 4] = ["scans_kingdom", "scans_alliance", "scans_honor", 
 /// before a frontend-supplied path is forwarded to the sidecar or the OS
 /// shell (delete / reveal-in-folder).
 fn resolve_scan_path(path: &str) -> Result<std::path::PathBuf, String> {
-    let p = std::path::Path::new(path);
-    let canon = p.canonicalize().map_err(|e| format!("Invalid path: {}", e))?;
+    // `canonicalize` returns a verbatim `\\?\`-prefixed path on Windows, while
+    // the roots below are plain paths. `starts_with` compares components, so
+    // the mismatched prefixes made every comparison fail. `dunce::simplified`
+    // strips the prefix from both sides (and leaves non-Windows paths alone).
+    let canon = std::path::Path::new(path)
+        .canonicalize()
+        .map_err(|e| format!("Invalid path: {}", e))?;
+    let canon = dunce::simplified(&canon).to_path_buf();
 
     // Determine project/app root depending on build mode
     let root = if cfg!(debug_assertions) {
@@ -29,8 +35,15 @@ fn resolve_scan_path(path: &str) -> Result<std::path::PathBuf, String> {
             .ok_or("Failed to get exe dir")?
             .to_path_buf()
     };
+    let root = dunce::simplified(&root.canonicalize().unwrap_or(root)).to_path_buf();
 
-    let in_scan_dir = SCAN_DIRS.iter().any(|d| canon.starts_with(root.join(d)));
+    // Compare canonical forms of the scan dirs too, so a symlinked or
+    // differently-spelled root still matches.
+    let in_scan_dir = SCAN_DIRS.iter().any(|d| {
+        let dir = root.join(d);
+        let dir = dunce::simplified(&dir.canonicalize().unwrap_or(dir)).to_path_buf();
+        canon.starts_with(dir)
+    });
     if !in_scan_dir {
         return Err(format!("Path not in scan directories: {}", path));
     }
@@ -196,16 +209,22 @@ pub fn detect_emulators(sidecar: State<'_, SidecarManager>) -> Result<(), String
     send(&sidecar, "DetectEmulators", None)
 }
 
-/// Kill the sidecar and exit the process so a pending update can replace files.
+/// Stop the sidecar so a pending update can replace its executable.
 ///
-/// `std::process::exit` never runs destructors, so `SidecarManager::drop`
-/// would be skipped and an orphaned `scanner_sidecar.exe` would keep a file
-/// lock that blocks the NSIS installer from replacing it.
+/// Must be called *before* the update is installed. On Windows the NSIS
+/// installer's `CheckIfAppIsRunning` only shuts down the main binary, so a
+/// live `scanner_sidecar.exe` keeps its own file locked and the installer fails
+/// with "Error opening file for writing: scanner_sidecar.exe".
+///
+/// This deliberately does not exit the process. `downloadAndInstall` ends in
+/// `std::process::exit(0)` on Windows, so any teardown sequenced after it in JS
+/// never runs; killing here — between the download and the install — is what
+/// makes the ordering deterministic.
+///
+/// `SidecarManager::kill` already waits for the child to be reaped, so the OS
+/// has released the executable image by the time this returns.
 #[tauri::command]
 pub fn shutdown_for_update(sidecar: State<'_, SidecarManager>) {
     sidecar.kill();
-    // Give the OS time to release the child's file handles and for any
-    std::thread::sleep(std::time::Duration::from_millis(1500));
-    std::process::exit(0);
 }
 

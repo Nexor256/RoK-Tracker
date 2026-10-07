@@ -228,7 +228,8 @@ impl SidecarManager {
         }
     }
 
-    /// Kill the sidecar process and wait for the OS to release all handles.
+    /// Kill the sidecar process and wait for the OS to release all handles,
+    /// so the executable can be overwritten by an installer.
     pub fn kill(&self) {
         if let Some(ref mut child) = *self.child.lock().unwrap_or_else(|e| e.into_inner()) {
             let _ = child.kill();
