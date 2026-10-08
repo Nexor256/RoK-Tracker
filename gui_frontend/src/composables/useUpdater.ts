@@ -94,8 +94,19 @@ async function startUpdate() {
       }
     })
 
-    // Waits for the sidecar process to be reaped, releasing its file lock.
-    await shutdownForUpdate()
+    // Wait until the sidecar's executable is genuinely replaceable. Rust
+    // verifies the file opens for writing rather than inferring from process
+    // state, because that is the precondition the installer actually needs.
+    // Handling this separately keeps a genuine failure from being reported as
+    // a generic install error.
+    try {
+      await shutdownForUpdate()
+    } catch (e) {
+      downloading.value = false
+      errorDismissed.value = false
+      errorMessage.value = String(e)
+      return
+    }
     sidecarStopped = true
 
     // Runs the installer detached, then exits this process on Windows.

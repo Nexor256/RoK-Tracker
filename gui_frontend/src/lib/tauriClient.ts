@@ -187,8 +187,12 @@ export function detectEmulators(): void {
  * Must run after the update has downloaded but before it is installed: on
  * Windows the NSIS installer only shuts down the main binary, so a live
  * `scanner_sidecar.exe` would keep its own file locked and the install would
- * fail with "Error opening file for writing". Rust waits for the child to be
- * reaped, so the file lock is released by the time this resolves.
+ * fail with "Error opening file for writing".
+ *
+ * Rejects if the executable is still locked once the sidecar has stopped, which
+ * means the install must not be started. Rust waits for the child to be reaped
+ * *and* for the file to become writable, since process exit alone does not
+ * release the executable image.
  */
 export async function shutdownForUpdate(): Promise<void> {
   await invoke('shutdown_for_update')

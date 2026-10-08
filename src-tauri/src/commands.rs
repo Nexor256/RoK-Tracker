@@ -221,10 +221,13 @@ pub fn detect_emulators(sidecar: State<'_, SidecarManager>) -> Result<(), String
 /// never runs; killing here — between the download and the install — is what
 /// makes the ordering deterministic.
 ///
-/// `SidecarManager::kill` already waits for the child to be reaped, so the OS
-/// has released the executable image by the time this returns.
+/// `SidecarManager::kill` alone is not enough: a reaped process does not imply
+/// the executable is writable, and Windows can keep the image section mapped
+/// briefly after termination. This waits on the file itself and returns `Err`
+/// if the lock never clears, so the update stops before the installer starts
+/// instead of failing part-way through with the user clicking Retry.
 #[tauri::command]
-pub fn shutdown_for_update(sidecar: State<'_, SidecarManager>) {
-    sidecar.kill();
+pub fn shutdown_for_update(sidecar: State<'_, SidecarManager>) -> Result<(), String> {
+    sidecar.kill_and_wait_until_replaceable()
 }
 

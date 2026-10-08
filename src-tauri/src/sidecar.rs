@@ -1,5 +1,6 @@
 use serde_json::Value;
 use std::io::{BufRead, BufReader, Write};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -9,6 +10,10 @@ use tauri::{AppHandle, Emitter, Runtime};
 pub struct SidecarManager {
     child: Arc<Mutex<Option<Child>>>,
     stdin_handle: Arc<Mutex<Option<std::process::ChildStdin>>>,
+    /// Path of the bundled sidecar executable, when running from a built app.
+    /// Dev builds launch `scanner_sidecar.py` through the venv interpreter and
+    /// have no such executable, so this stays `None` there.
+    exe_path: Arc<Mutex<Option<PathBuf>>>,
 }
 
 impl SidecarManager {
@@ -16,6 +21,7 @@ impl SidecarManager {
         Self {
             child: Arc::new(Mutex::new(None)),
             stdin_handle: Arc::new(Mutex::new(None)),
+            exe_path: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -29,7 +35,7 @@ impl SidecarManager {
 
         // In dev mode, run scanner_sidecar.py directly with Python
         // In prod mode, run the bundled sidecar executable (placed by Tauri externalBin)
-        let (program, args, work_dir) = if cfg!(debug_assertions) {
+        let (program, args, work_dir, exe_path) = if cfg!(debug_assertions) {
             // Tauri runs from src-tauri/, so the repo root is one level up
             let project_root = cwd.parent().unwrap_or(&cwd).to_path_buf();
             let script = project_root.join("scanner_sidecar.py");
@@ -47,7 +53,7 @@ impl SidecarManager {
                 "python".to_string()
             };
 
-            (python_exe, vec![script.to_string_lossy().to_string()], project_root)
+            (python_exe, vec![script.to_string_lossy().to_string()], project_root, None)
         } else {
             // Tauri places externalBin binaries next to the app executable,
             // keeping the target-triple suffix: scanner_sidecar-{triple}[.exe]
@@ -80,7 +86,7 @@ impl SidecarManager {
 
             eprintln!("[sidecar] Found sidecar at: {}", sidecar_path.display());
 
-            (sidecar_path.to_string_lossy().to_string(), vec![], exe_dir)
+            (sidecar_path.to_string_lossy().to_string(), vec![], exe_dir, Some(sidecar_path))
         };
 
         let mut command = Command::new(&program);
@@ -107,6 +113,7 @@ impl SidecarManager {
 
         *self.stdin_handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(stdin);
         *self.child.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
+        *self.exe_path.lock().unwrap_or_else(|e| e.into_inner()) = exe_path;
 
         // Spawn a reader thread that parses JSON lines from stdout
         // and emits them as Tauri events to the frontend
@@ -246,6 +253,56 @@ impl SidecarManager {
             }
         }
         *self.stdin_handle.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    }
+
+    /// Stop the sidecar and block until its executable can actually be replaced.
+    ///
+    /// A reaped process is not the same thing as an unlocked file. On Windows
+    /// `TerminateProcess` only initiates termination, and the image section can
+    /// outlive the reaped child by a short interval. Starting an installer in
+    /// that window produces the exact failure this guards against:
+    ///
+    ///   Error opening file for writing: scanner_sidecar.exe
+    ///
+    /// So rather than inferring from process state, this polls the file itself
+    /// until it opens for writing, which is the real precondition the NSIS
+    /// installer depends on. Returns `Err` if the lock never clears, so callers
+    /// can stop instead of launching an install that is certain to fail.
+    pub fn kill_and_wait_until_replaceable(&self) -> Result<(), String> {
+        self.kill();
+
+        let path = {
+            let guard = self.exe_path.lock().unwrap_or_else(|e| e.into_inner());
+            match guard.as_ref() {
+                Some(path) => path.clone(),
+                // Dev builds run scanner_sidecar.py through the venv interpreter
+                // and bundle no executable, so there is nothing to wait on.
+                None => return Ok(()),
+            }
+        };
+
+        let deadline =
+            std::time::Instant::now() + std::time::Duration::from_secs(10);
+
+        loop {
+            // Deliberately no truncate(true): this must only test write access,
+            // never disturb the file that is about to be overwritten.
+            match std::fs::OpenOptions::new().write(true).open(&path) {
+                Ok(_) => return Ok(()),
+                Err(e) => {
+                    if std::time::Instant::now() >= deadline {
+                        return Err(format!(
+                            "'{}' is still locked after stopping the scanner \
+                             backend ({}). Close any remaining scanner \
+                             processes and try the update again.",
+                            path.display(),
+                            e,
+                        ));
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        }
     }
 }
 
