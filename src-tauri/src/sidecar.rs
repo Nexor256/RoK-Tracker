@@ -2,6 +2,7 @@ use serde_json::Value;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter, Runtime};
@@ -14,6 +15,11 @@ pub struct SidecarManager {
     /// Dev builds launch `scanner_sidecar.py` through the venv interpreter and
     /// have no such executable, so this stays `None` there.
     exe_path: Arc<Mutex<Option<PathBuf>>>,
+    /// Set when *we* stop the sidecar. Killing it breaks its stdout pipe, which
+    /// the sidecar treats as a fatal condition and answers with a non-zero exit,
+    /// so without this the stdout reader would report our own deliberate
+    /// teardown as a crash.
+    stopping: Arc<AtomicBool>,
 }
 
 impl SidecarManager {
@@ -22,6 +28,7 @@ impl SidecarManager {
             child: Arc::new(Mutex::new(None)),
             stdin_handle: Arc::new(Mutex::new(None)),
             exe_path: Arc::new(Mutex::new(None)),
+            stopping: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -114,11 +121,15 @@ impl SidecarManager {
         *self.stdin_handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(stdin);
         *self.child.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
         *self.exe_path.lock().unwrap_or_else(|e| e.into_inner()) = exe_path;
+        // A fresh sidecar's exit is meaningful again, so clear any stop flag
+        // left behind by a previous shutdown.
+        self.stopping.store(false, Ordering::Relaxed);
 
         // Spawn a reader thread that parses JSON lines from stdout
         // and emits them as Tauri events to the frontend
         let app_handle_stdout = app_handle.clone();
         let child_arc = Arc::clone(&self.child);
+        let stopping = Arc::clone(&self.stopping);
         thread::spawn(move || {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
@@ -169,7 +180,13 @@ impl SidecarManager {
             };
             
             if let Some(status) = status {
-                if !status.success() {
+                // A stop we asked for is not a crash. Killing the sidecar closes
+                // its stdout pipe, and `emit_event` in scanner_sidecar.py treats
+                // that as fatal (`os._exit(1)`), so an intentional shutdown always
+                // produces a non-zero status. Reporting it would raise a
+                // spurious "Unexpected Backend Error" in the frontend during a
+                // routine update.
+                if !status.success() && !stopping.load(Ordering::Relaxed) {
                     let msg = format!("Sidecar process crashed or exited unexpectedly (status: {})", status);
                     let _ = app_handle_stdout.emit("sidecar:error", &msg);
                     eprintln!("[sidecar] {}", msg);
@@ -237,7 +254,11 @@ impl SidecarManager {
 
     /// Kill the sidecar process and wait for the OS to release all handles,
     /// so the executable can be overwritten by an installer.
+    ///
+    /// Every exit that happens from here on is expected, so the stdout reader
+    /// stops treating the resulting non-zero status as a crash.
     pub fn kill(&self) {
+        self.stopping.store(true, Ordering::Relaxed);
         if let Some(ref mut child) = *self.child.lock().unwrap_or_else(|e| e.into_inner()) {
             let _ = child.kill();
             // Reap the child so the OS releases all handles on the executable.
