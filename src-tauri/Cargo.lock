@@ -2907,6 +2907,7 @@ dependencies = [
 name = "rok-tracker-suite"
 version = "1.1.0"
 dependencies = [
+ "dunce",
  "serde",
  "serde_json",
  "tauri",

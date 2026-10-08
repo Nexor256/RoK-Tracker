@@ -65,8 +65,23 @@ async function startUpdate() {
   downloadTotal.value = 0
   errorMessage.value = ''
 
+  // Stopping the sidecar kills the scanner backend, so if anything after that
+  // point fails the app is no longer functional and a retry cannot work. Tell
+  // the user to restart instead of offering one.
+  let sidecarStopped = false
+
   try {
-    await pendingUpdate.downloadAndInstall((event) => {
+    // Download and install are split deliberately. On Windows the installer's
+    // `CheckIfAppIsRunning` only shuts down the main binary, so a live
+    // `scanner_sidecar.exe` keeps its own file locked and the installer stops
+    // with "Error opening file for writing: scanner_sidecar.exe".
+    //
+    // `downloadAndInstall` cannot be used here: on Windows it ends in
+    // `std::process::exit(0)` inside the plugin, so nothing sequenced after it
+    // in JS ever runs and the sidecar could never be stopped in time. Killing
+    // it between the download and the install puts the teardown ahead of the
+    // installer deterministically.
+    await pendingUpdate.download((event) => {
       switch (event.event) {
         case 'Started':
           downloadTotal.value = event.data.contentLength ?? 0
@@ -78,21 +93,27 @@ async function startUpdate() {
           break
       }
     })
-    // On Windows, the NSIS installer runs in the background and waits for the app to close.
-    // Relaunching immediately starts a new instance that locks the executable, causing the
-    // update to fail. We must also kill the sidecar explicitly: process::exit skips Drop
-    // impls, and an orphaned scanner_sidecar.exe keeps a file lock that blocks the installer.
-    const isWindows = navigator.userAgent.includes('Windows') || navigator.userAgent.includes('Win')
-    if (isWindows) {
-      await shutdownForUpdate()
-    } else {
-      await relaunch()
-    }
+
+    // Waits for the sidecar process to be reaped, releasing its file lock.
+    await shutdownForUpdate()
+    sidecarStopped = true
+
+    // Runs the installer detached, then exits this process on Windows.
+    await pendingUpdate.install()
+
+    // Only reached off Windows, where `install` returns normally.
+    await relaunch()
   } catch (e) {
     console.error('Update install failed:', e)
     downloading.value = false
-    errorMessage.value = "Couldn't install the update. Try again or download it manually."
     errorDismissed.value = false
+    if (sidecarStopped) {
+      // The scanner backend is gone; only a restart brings it back.
+      errorMessage.value =
+        "Couldn't install the update, and the scanner backend was stopped to release its files. Please restart RoK Tracker Suite."
+    } else {
+      errorMessage.value = "Couldn't install the update. Try again or download it manually."
+    }
   }
 }
 

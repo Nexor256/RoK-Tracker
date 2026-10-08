@@ -692,15 +692,12 @@ class KingdomScanner:
             api.SetPageSegMode(PSM.SINGLE_LINE)
             if self.scan_options.id:
                 im_gov_id = cropToRegion(image, ui_positions["gov_id"])
-                
-                # Standard thresholding (using the existing utility for cleaner code)
-                im_gov_id_bw = preprocessImage(im_gov_id, 3, 120, 12, True)
-                governor_data.id = ocr_number(api, im_gov_id_bw)
-                
-                # Fallback to robust preprocessing for themed profiles
-                if governor_data.id == "Unknown":
-                    im_gov_id_bw = preprocessImageRobust(im_gov_id, 3, 120, 12, True)
-                    governor_data.id = ocr_number(api, im_gov_id_bw, empty_retry=True)
+                # Multi-pass OCR: legacy threshold + Otsu/channel variants.
+                # Themed profiles (e.g. autumn yellow) have almost no grayscale
+                # contrast, so a fixed threshold keeps only fragments like "57".
+                # ocr_governor_id votes across binarisations and returns
+                # "Unknown" instead of a corrupt short ID when unsure.
+                governor_data.id = ocr_governor_id(api, im_gov_id)
 
             if self.scan_options.alliance:
                 im_alliance_tag = cropToRegion(
@@ -708,7 +705,9 @@ class KingdomScanner:
                 )
                 im_alliance_bw = preprocessImage(im_alliance_tag, 3, 50, 12, True)
 
-                governor_data.alliance = ocr_text(api, im_alliance_bw)
+                governor_data.alliance = clean_alliance_name(
+                    ocr_text(api, im_alliance_bw)
+                )
 
         if self.is_page_needed(2):
             # kills tier

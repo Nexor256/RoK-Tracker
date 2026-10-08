@@ -5,6 +5,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { toRaw } from 'vue'
+import { toast } from '@/components/ui/toast'
 import type { FullConfig } from '@/schema/FullConfig'
 import type { ScanPreset } from '@/schema/ScanPreset'
 
@@ -155,8 +156,25 @@ export function deleteScanFile(path: string): void {
   invoke('delete_scan_file', { path }).catch((e) => console.error('deleteScanFile failed:', e))
 }
 
+/**
+ * Reveal a scan file in Explorer.
+ *
+ * Rejections are surfaced to the user rather than only logged: a rejected path
+ * (missing, outside the scan directories, or locked) otherwise looks exactly
+ * like a dead button, since the click produces no visible effect.
+ */
 export function openScanFolder(path: string): void {
-  invoke('open_scan_folder', { path }).catch((e) => console.error('openScanFolder failed:', e))
+  invoke('open_scan_folder', { path }).catch((e) => {
+    console.error('openScanFolder failed:', e)
+    const detail = String(e)
+    toast({
+      title: "Couldn't Open Folder",
+      description:
+        detail.includes('not in scan directories')
+          ? 'That scan file is no longer in the app folder, so it cannot be revealed. Refresh the history list.'
+          : 'Explorer could not open the location for this scan file. Check that the file still exists.',
+    })
+  })
 }
 
 export function detectEmulators(): void {
@@ -164,16 +182,16 @@ export function detectEmulators(): void {
 }
 
 /**
- * Kill the sidecar and exit the app so a pending update can replace files.
- * Never returns — the Rust side calls process::exit after cleanup.
- * The invoke will reject because the IPC channel is torn down; that is expected.
+ * Stop the sidecar so a pending update can replace its executable.
+ *
+ * Must run after the update has downloaded but before it is installed: on
+ * Windows the NSIS installer only shuts down the main binary, so a live
+ * `scanner_sidecar.exe` would keep its own file locked and the install would
+ * fail with "Error opening file for writing". Rust waits for the child to be
+ * reaped, so the file lock is released by the time this resolves.
  */
 export async function shutdownForUpdate(): Promise<void> {
-  try {
-    await invoke('shutdown_for_update')
-  } catch {
-    // Expected: process::exit tears down the IPC channel before a response arrives
-  }
+  await invoke('shutdown_for_update')
 }
 
 // ---- Events (Python → Rust → frontend) ----
