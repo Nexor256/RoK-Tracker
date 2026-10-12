@@ -18,6 +18,34 @@ def to_int_check(element) -> int:
         return int(0)
 
 
+def to_int_strict(element: Any) -> int | None:
+    """Parse to int, or return None when the value is not a real measurement.
+
+    ``to_int_check`` collapses every failure to ``0``, which makes a field that
+    OCR could not read indistinguishable from a field that genuinely is zero.
+    In the killpoint equations that is not a cosmetic problem: ``floor(0*0.2)``
+    is a perfectly valid contribution, so an unreadable tier can quietly satisfy
+    the identity. Use this instead whenever the caller must be able to tell
+    "read failed" apart from "the number is zero".
+    """
+    if element is None or isinstance(element, bool):
+        return None
+    if isinstance(element, int):
+        return element
+    if isinstance(element, str):
+        stripped = element.strip()
+        if stripped in ("Unknown", "Skipped", ""):
+            return None
+        try:
+            return int(stripped)
+        except ValueError:
+            return None
+    try:
+        return int(element)
+    except (TypeError, ValueError):
+        return None
+
+
 def to_int_or(element: Any, fallback: int) -> int:
     try:
         return int(element)

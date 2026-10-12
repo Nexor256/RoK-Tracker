@@ -1,16 +1,16 @@
 {
     "scan": {
         "kingdom_name": "test",
-        "people_to_scan": 300,
+        "people_to_scan": 10,
         "resume": false,
         "advanced_scroll": true,
-        "track_inactives": false,
-        "validate_power": false,
+        "track_inactives": true,
+        "validate_power": true,
         "power_threshold": 100000,
         "validate_kills": true,
         "reconstruct_kills": true,
-        "check_cityhall": false,
-        "ch_auto_assign_power": 25000000,
+        "check_cityhall": true,
+        "ch_auto_assign_power": 135000000,
         "timings": {
             "gov_open": 2.0,
             "copy_wait": 0.2,

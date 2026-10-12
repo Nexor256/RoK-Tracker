@@ -3,6 +3,7 @@ import logging
 import re
 from pathvalidate import sanitize_filename
 from roktracker.kingdom.pandas_handler import PandasHandler
+from roktracker.kingdom import consistency
 import roktracker.utils.rok_ui_positions as rok_ui
 import shutil
 import time
@@ -1192,6 +1193,19 @@ class KingdomScanner:
                     last_gov_power = gov_power
                 else:
                     self.save_failed("power", gov_data)
+
+            # Record the row-level verdict so a governor whose fields could not
+            # be trusted is tracked in-memory (and available to any caller that
+            # wants it) without adding a column to the exported sheet.
+            statuses = []
+            if validate_kills:
+                statuses.append(gov_data.kills_status())
+                statuses.append(gov_data.killpoints_status())
+            if validate_power:
+                statuses.append(consistency.OK if power_ok else consistency.MISMATCH)
+            gov_data.validation = (
+                consistency.summarise(statuses) if statuses else consistency.NOT_SCANNED
+            )
 
             if self.config.scan.check_cityhall:
                 gov_power = to_int_check(gov_data.power)

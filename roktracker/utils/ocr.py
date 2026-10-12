@@ -234,6 +234,22 @@ def _len_plausibility_rank(length: int) -> int:
     return 3  # 10+ digits: likely a paren/background hallucination
 
 
+def _opening_was_effective(bw: MatLike, kernel: MatLike | None = None) -> bool:
+    """True when a morphological open actually changed the binarised image.
+
+    A no-op open is not independent evidence: OCR will read the identical
+    pixels again, so treating "both passes agree" as corroboration is really
+    just asking the same question twice. Requiring the open to alter the image
+    keeps the fast path honest.
+    """
+    try:
+        if kernel is None:
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+        return not np.array_equal(cv2.morphologyEx(bw, cv2.MORPH_OPEN, kernel), bw)
+    except Exception:
+        return False
+
+
 def _vote_id_candidates(
     candidates: list[tuple[str, int]], legacy_result: str, min_valid_len: int
 ) -> str:
@@ -264,11 +280,15 @@ def _vote_id_candidates(
         return ""
 
     # --- tiered consensus over cleaner readings -----------------------------
+    # A lone high-weight reading is NOT consensus: the de-speckle pass can drop
+    # a digit outright (e.g. "15369963"), and trusting it alone let that shorter
+    # string beat two agreeing readings of the correct length. Require at least
+    # two readings that agree before a tier decides the result.
     weights = sorted({w for _, w in valid}, reverse=True)
     for cutoff in weights:
         tier = [d for d, w in valid if w >= cutoff]
         distinct = set(tier)
-        if len(distinct) == 1:
+        if len(distinct) == 1 and sum(1 for _ in tier) >= 2:
             d = next(iter(distinct))
             if _len_plausibility_rank(len(d)) <= 1:
                 return d
@@ -394,10 +414,14 @@ def ocr_governor_id(
         return d
 
     # 1. Legacy path first (fast path for the standard blue theme).  A
-    # plausible 8-9 digit reading is only returned immediately when a
-    # speckle-cleaned (morphological open) variant confirms it — background
-    # texture dots inside a "0" loop otherwise turn "153699403" into
-    # "153699493" and the corrupted reading used to win outright on length.
+    # plausible 8-9 digit reading is only returned immediately when an
+    # independent binarisation agrees with it — background texture dots inside
+    # a "0" loop otherwise turn "153699403" into "153699493" and the corrupted
+    # reading used to win outright on length.
+    #
+    # Only cv2.MORPH_OPEN counts as corroboration here. A morphological open
+    # keeps the speckle and reads the same corrupted string, so accepting it
+    # made the fast path agree with itself.
     try:
         bw_legacy = preprocessImage(crop, 3, 120, border_size, True)
         d0 = _ocr_pass(bw_legacy, 1, needs_border=False)
@@ -410,13 +434,9 @@ def ocr_governor_id(
                 )
             except Exception:
                 d1 = ""
-            try:
-                d2 = _ocr_pass(
-                    _remove_counter_speckles(bw_legacy), 3, needs_border=False
-                )
-            except Exception:
-                d2 = ""
-            if d0 in (d1, d2):
+            # An open that changes nothing proves nothing: whatever OCR read
+            # from the raw image it reads again from the identical cleaned one.
+            if d0 == d1 and _opening_was_effective(bw_legacy):
                 return d0
         if d0:
             legacy_result = d0
@@ -428,6 +448,13 @@ def ocr_governor_id(
     # texture (e.g. Colosseum crowd) can leave dots inside a "0" loop so
     # it reads as "9"; opening drops isolated speckle while keeping glyphs.
     # Cleaned variants get a higher vote weight than raw thresholds.
+    #
+    # _remove_counter_speckles is deliberately NOT used here. Its rule
+    # ("small blob inside an enclosed background region") also matches the
+    # counters of 0/6/8/9, so on "153699463" it deleted 3077px across four
+    # components -- the whole 9, 8 and 0 -- turning the ID into "15369963".
+    # Dropping it removes two wasted Tesseract passes and a source of digit
+    # loss.
     try:
         if crop is None or getattr(crop, "size", 1) == 0:
             raise ValueError("empty crop")
@@ -443,7 +470,6 @@ def ocr_governor_id(
             otsu_images.append(
                 (cv2.morphologyEx(bw_gray, cv2.MORPH_OPEN, kernel), 2)
             )
-            otsu_images.append((_remove_counter_speckles(bw_gray), 3))
             for ch_idx in range(3):
                 ch = big[:, :, ch_idx]
                 (_, bw_inv) = cv2.threshold(
@@ -469,7 +495,6 @@ def ocr_governor_id(
     try:
         bw_hsv = preprocessImageRobust(crop, 3, 150, border_size, True)
         _ocr_pass(bw_hsv, 2, needs_border=False)
-        _ocr_pass(_remove_counter_speckles(bw_hsv), 3, needs_border=False)
     except Exception:
         pass
 

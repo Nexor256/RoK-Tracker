@@ -43,7 +43,9 @@ class ScanConfig(BaseModel):
     resume: bool = False
     advanced_scroll: bool = True
     track_inactives: bool = False
-    validate_power: bool = False
+    # Governor lists are sorted by power, so a non-descending power is a reliable
+    # signal that a row was misread. Enabled by default.
+    validate_power: bool = True
     power_threshold: int = Field(default=100000, ge=0)
     validate_kills: bool = True
     reconstruct_kills: bool = True
